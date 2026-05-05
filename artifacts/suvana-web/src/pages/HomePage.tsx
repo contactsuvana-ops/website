@@ -79,14 +79,14 @@ export default function HomePage() {
             </motion.div>
 
             {/* Trust Badges */}
-            <motion.div variants={fadeUp} className="flex flex-wrap gap-3">
+            <motion.div variants={fadeUp} className="flex flex-wrap gap-4">
               {TRUST_BADGES.map(({ symbol, label }) => (
                 <div
                   key={label}
-                  className="inline-flex items-center gap-2 rounded-sm border border-background/20 bg-background/10 backdrop-blur px-4 py-2"
+                  className="inline-flex items-center gap-2.5 rounded-sm bg-accent px-5 py-3 shadow-lg"
                 >
-                  <span className="text-base leading-none">{symbol}</span>
-                  <span className="text-sm font-semibold text-background">{label}</span>
+                  <span className="text-xl leading-none">{symbol}</span>
+                  <span className="text-sm font-bold text-white uppercase tracking-wide">{label}</span>
                 </div>
               ))}
             </motion.div>
