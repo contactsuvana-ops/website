@@ -17,6 +17,8 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AddCommentBody,
+  Comment,
   ContactFormBody,
   ErrorResponse,
   GetSubmissionsParams,
@@ -451,3 +453,262 @@ export function useGetSubmissionStats<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Get all comments for a submission
+ */
+export const getGetCommentsUrl = (id: number) => {
+  return `/api/submissions/${id}/comments`;
+};
+
+export const getComments = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Comment[]> => {
+  return customFetch<Comment[]>(getGetCommentsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCommentsQueryKey = (id: number) => {
+  return [`/api/submissions/${id}/comments`] as const;
+};
+
+export const getGetCommentsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getComments>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getComments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCommentsQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getComments>>> = ({
+    signal,
+  }) => getComments(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getComments>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCommentsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getComments>>
+>;
+export type GetCommentsQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get all comments for a submission
+ */
+
+export function useGetComments<
+  TData = Awaited<ReturnType<typeof getComments>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getComments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCommentsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add a comment to a submission
+ */
+export const getAddCommentUrl = (id: number) => {
+  return `/api/submissions/${id}/comments`;
+};
+
+export const addComment = async (
+  id: number,
+  addCommentBody: AddCommentBody,
+  options?: RequestInit,
+): Promise<Comment> => {
+  return customFetch<Comment>(getAddCommentUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(addCommentBody),
+  });
+};
+
+export const getAddCommentMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addComment>>,
+    TError,
+    { id: number; data: BodyType<AddCommentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof addComment>>,
+  TError,
+  { id: number; data: BodyType<AddCommentBody> },
+  TContext
+> => {
+  const mutationKey = ["addComment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof addComment>>,
+    { id: number; data: BodyType<AddCommentBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return addComment(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AddCommentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof addComment>>
+>;
+export type AddCommentMutationBody = BodyType<AddCommentBody>;
+export type AddCommentMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Add a comment to a submission
+ */
+export const useAddComment = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addComment>>,
+    TError,
+    { id: number; data: BodyType<AddCommentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof addComment>>,
+  TError,
+  { id: number; data: BodyType<AddCommentBody> },
+  TContext
+> => {
+  return useMutation(getAddCommentMutationOptions(options));
+};
+
+/**
+ * @summary Delete a comment
+ */
+export const getDeleteCommentUrl = (id: number, commentId: number) => {
+  return `/api/submissions/${id}/comments/${commentId}`;
+};
+
+export const deleteComment = async (
+  id: number,
+  commentId: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteCommentUrl(id, commentId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteCommentMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteComment>>,
+    TError,
+    { id: number; commentId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteComment>>,
+  TError,
+  { id: number; commentId: number },
+  TContext
+> => {
+  const mutationKey = ["deleteComment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteComment>>,
+    { id: number; commentId: number }
+  > = (props) => {
+    const { id, commentId } = props ?? {};
+
+    return deleteComment(id, commentId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteCommentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteComment>>
+>;
+
+export type DeleteCommentMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Delete a comment
+ */
+export const useDeleteComment = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteComment>>,
+    TError,
+    { id: number; commentId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteComment>>,
+  TError,
+  { id: number; commentId: number },
+  TContext
+> => {
+  return useMutation(getDeleteCommentMutationOptions(options));
+};

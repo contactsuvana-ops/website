@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, pgEnum, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -48,8 +48,20 @@ export const submissionsTable = pgTable("submissions", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const submissionCommentsTable = pgTable("submission_comments", {
+  id: serial("id").primaryKey(),
+  submissionId: integer("submission_id").notNull().references(() => submissionsTable.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  isShared: boolean("is_shared").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const insertSubmissionSchema = createInsertSchema(submissionsTable).omit({ id: true, createdAt: true });
 export const selectSubmissionSchema = createSelectSchema(submissionsTable);
+export const insertCommentSchema = createInsertSchema(submissionCommentsTable).omit({ id: true, createdAt: true });
+export const selectCommentSchema = createSelectSchema(submissionCommentsTable);
 
 export type InsertSubmission = z.infer<typeof insertSubmissionSchema>;
 export type Submission = typeof submissionsTable.$inferSelect;
+export type InsertComment = z.infer<typeof insertCommentSchema>;
+export type Comment = typeof submissionCommentsTable.$inferSelect;

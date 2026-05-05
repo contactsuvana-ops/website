@@ -40,10 +40,7 @@ export const SubmitContactBody = zod.object({
     .string()
     .min(submitContactBodyMessageMin)
     .max(submitContactBodyMessageMax),
-  honeypot: zod
-    .string()
-    .optional()
-    .describe("Anti-spam honeypot field, must be empty"),
+  honeypot: zod.string().optional(),
 });
 
 /**
@@ -98,10 +95,7 @@ export const SubmitQuoteBody = zod.object({
     .string()
     .min(submitQuoteBodyMessageMin)
     .max(submitQuoteBodyMessageMax),
-  honeypot: zod
-    .string()
-    .optional()
-    .describe("Anti-spam honeypot field, must be empty"),
+  honeypot: zod.string().optional(),
 });
 
 /**
@@ -149,7 +143,7 @@ export const GetSubmissionsResponse = zod.object({
 export const GetSubmissionStatsResponse = zod.object({
   totalContacts: zod.number(),
   totalQuotes: zod.number(),
-  recentSubmissions: zod.number().describe("Submissions in last 30 days"),
+  recentSubmissions: zod.number(),
   byProjectType: zod
     .array(
       zod.object({
@@ -158,4 +152,44 @@ export const GetSubmissionStatsResponse = zod.object({
       }),
     )
     .optional(),
+});
+
+/**
+ * @summary Get all comments for a submission
+ */
+export const GetCommentsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetCommentsResponseItem = zod.object({
+  id: zod.number(),
+  submissionId: zod.number(),
+  content: zod.string(),
+  isShared: zod.boolean(),
+  createdAt: zod.coerce.date(),
+});
+export const GetCommentsResponse = zod.array(GetCommentsResponseItem);
+
+/**
+ * @summary Add a comment to a submission
+ */
+export const AddCommentParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const addCommentBodyContentMax = 5000;
+
+export const addCommentBodyIsSharedDefault = false;
+
+export const AddCommentBody = zod.object({
+  content: zod.string().min(1).max(addCommentBodyContentMax),
+  isShared: zod.boolean().default(addCommentBodyIsSharedDefault),
+});
+
+/**
+ * @summary Delete a comment
+ */
+export const DeleteCommentParams = zod.object({
+  id: zod.coerce.number(),
+  commentId: zod.coerce.number(),
 });

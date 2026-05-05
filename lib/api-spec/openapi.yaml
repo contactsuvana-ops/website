@@ -16,6 +16,8 @@ tags:
     description: Quote request submissions
   - name: submissions
     description: Admin - view all submissions
+  - name: comments
+    description: Admin - internal notes on submissions
 paths:
   /healthz:
     get:
@@ -128,6 +130,94 @@ paths:
               schema:
                 $ref: "#/components/schemas/SubmissionStats"
 
+  /submissions/{id}/comments:
+    get:
+      operationId: getComments
+      tags: [comments]
+      summary: Get all comments for a submission
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comment"
+        "404":
+          description: Submission not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: addComment
+      tags: [comments]
+      summary: Add a comment to a submission
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddCommentBody"
+      responses:
+        "201":
+          description: Comment added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Submission not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /submissions/{id}/comments/{commentId}:
+    delete:
+      operationId: deleteComment
+      tags: [comments]
+      summary: Delete a comment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Comment deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -158,7 +248,6 @@ components:
           maxLength: 2000
         honeypot:
           type: string
-          description: Anti-spam honeypot field, must be empty
 
     QuoteFormBody:
       type: object
@@ -215,7 +304,6 @@ components:
           maxLength: 2000
         honeypot:
           type: string
-          description: Anti-spam honeypot field, must be empty
 
     SubmissionResult:
       type: object
@@ -293,7 +381,6 @@ components:
           type: integer
         recentSubmissions:
           type: integer
-          description: Submissions in last 30 days
         byProjectType:
           type: array
           items:
@@ -304,3 +391,31 @@ components:
                 type: string
               count:
                 type: integer
+
+    Comment:
+      type: object
+      required: [id, submissionId, content, isShared, createdAt]
+      properties:
+        id:
+          type: integer
+        submissionId:
+          type: integer
+        content:
+          type: string
+        isShared:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    AddCommentBody:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 5000
+        isShared:
+          type: boolean
+          default: false

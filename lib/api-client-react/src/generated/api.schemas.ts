@@ -26,7 +26,6 @@ export interface ContactFormBody {
    * @maxLength 2000
    */
   message: string;
-  /** Anti-spam honeypot field, must be empty */
   honeypot?: string;
 }
 
@@ -94,7 +93,6 @@ export interface QuoteFormBody {
    * @maxLength 2000
    */
   message: string;
-  /** Anti-spam honeypot field, must be empty */
   honeypot?: string;
 }
 
@@ -145,9 +143,25 @@ export type SubmissionStatsByProjectTypeItem = {
 export interface SubmissionStats {
   totalContacts: number;
   totalQuotes: number;
-  /** Submissions in last 30 days */
   recentSubmissions: number;
   byProjectType?: SubmissionStatsByProjectTypeItem[];
+}
+
+export interface Comment {
+  id: number;
+  submissionId: number;
+  content: string;
+  isShared: boolean;
+  createdAt: string;
+}
+
+export interface AddCommentBody {
+  /**
+   * @minLength 1
+   * @maxLength 5000
+   */
+  content: string;
+  isShared?: boolean;
 }
 
 export type GetSubmissionsParams = {
