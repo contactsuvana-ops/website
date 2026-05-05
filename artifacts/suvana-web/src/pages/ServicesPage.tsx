@@ -4,67 +4,74 @@ import { ArrowRight } from "lucide-react";
 
 const SERVICES = [
   {
-    title: "General Construction",
-    tag: "New Builds & Additions",
-    desc: "From the ground up, we handle full-scale residential and commercial construction projects. Whether you need a new structure, an addition to your existing property, or a complex renovation requiring structural work, our licensed contractors manage every phase — planning, permitting, foundation, framing, and finishing.",
-    bullets: ["New residential builds", "Commercial construction", "Room additions & expansions", "Structural modifications", "Project management"],
-    img: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=80",
-  },
-  {
-    title: "Handyman Services",
-    tag: "Repairs & Maintenance",
-    desc: "Not every job needs a full crew — but every job deserves quality work. Our handyman team handles the everyday repairs, fixes, and improvements that keep your home or business running at its best. Fast response, reliable service, fair pricing.",
-    bullets: ["Door & window repairs", "Drywall patching", "Minor plumbing fixes", "Fixture installation", "General maintenance"],
-    img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80",
-  },
-  {
-    title: "Remodeling & Renovation",
-    tag: "Transform Your Space",
-    desc: "Breathe new life into your home with a thoughtful renovation. We specialize in kitchen and bathroom remodels, basement finishing, and full-property renovations — working with your vision and budget to deliver results that exceed expectations.",
-    bullets: ["Kitchen remodeling", "Bathroom renovations", "Basement finishing", "Open floor plan conversions", "Custom cabinetry"],
+    title: "Kitchen Remodeling",
+    tag: "Full Kitchen Transformations",
+    desc: "The kitchen is the heart of your home — and it should look like it. We handle complete kitchen remodels from layout changes and custom cabinetry to countertops, backsplash, lighting, and plumbing. We work with your style and budget to deliver a kitchen you'll love for years.",
+    bullets: ["Custom cabinetry & layout design", "Countertop installation (granite, quartz, butcher block)", "Backsplash tile work", "Appliance hookups", "Lighting & electrical upgrades"],
     img: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&q=80",
   },
   {
-    title: "Roofing",
+    title: "Drywall",
     tag: "Installation & Repair",
-    desc: "A quality roof is your home's first line of defense. We install, repair, and replace roofs using premium materials, with meticulous attention to flashing, ventilation, and weatherproofing. Every job backed by our workmanship warranty.",
-    bullets: ["Shingle installation & replacement", "Flat roof systems", "Leak detection & repair", "Gutters & downspouts", "Emergency storm repairs"],
-    img: "https://images.unsplash.com/photo-1632778149955-e80f8ceca2e8?w=800&q=80",
-  },
-  {
-    title: "Painting",
-    tag: "Interior & Exterior",
-    desc: "Professional painting transforms a space more than almost anything else. Our painters are meticulous — surface preparation, primer, clean lines, and a durable finish that looks great and lasts. Residential and commercial clients welcome.",
-    bullets: ["Interior painting", "Exterior painting", "Commercial painting", "Cabinet refinishing", "Deck staining & sealing"],
-    img: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=800&q=80",
-  },
-  {
-    title: "Flooring",
-    tag: "Every Surface, Done Right",
-    desc: "From rustic hardwood to modern luxury vinyl, we install flooring that completes a room. We handle subfloor prep, installation, and finishing with the care that protects your investment for decades.",
-    bullets: ["Hardwood installation & refinishing", "Tile & stone", "Luxury vinyl plank", "Carpet installation", "Subfloor repair"],
-    img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80",
-  },
-  {
-    title: "Electrical",
-    tag: "Safe & Code-Compliant",
-    desc: "Our licensed electricians handle everything from outlet installation to full panel upgrades. All work is code-compliant and inspected, giving you peace of mind that your home's electrical system is safe and reliable.",
-    bullets: ["Panel upgrades", "Outlet & switch installation", "Lighting fixtures", "Ceiling fans", "EV charger installation"],
-    img: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=800&q=80",
+    desc: "Whether you need new drywall hung in a freshly framed space or seamless repairs on existing walls, our crew delivers a finish that paints up perfectly. We handle everything from small patches to full room installs with precision taping, mudding, and sanding.",
+    bullets: ["New drywall installation", "Patch & repair (holes, water damage, cracks)", "Tape, mud & sand finish", "Texture matching", "Ceiling drywall"],
+    img: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=80",
   },
   {
     title: "Plumbing",
     tag: "From Drips to Full Installs",
-    desc: "Pipe leaks, clogged drains, fixture replacements, water heater installs — our licensed plumbers respond quickly and fix it right the first time. We work on residential and light commercial plumbing.",
-    bullets: ["Pipe repair & replacement", "Fixture installation", "Water heater service", "Drain cleaning", "Bathroom plumbing"],
+    desc: "Pipe leaks, clogged drains, fixture replacements, water heater installs — our licensed plumbers respond quickly and fix it right the first time. We work on residential and light commercial plumbing with transparency on pricing before any work begins.",
+    bullets: ["Pipe repair & replacement", "Fixture installation (sinks, toilets, showers)", "Water heater service & install", "Drain cleaning", "Bathroom & kitchen plumbing"],
     img: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=800&q=80",
   },
   {
-    title: "Landscaping",
-    tag: "Outdoor Spaces",
-    desc: "The exterior of your property is the first impression. We design and implement landscaping solutions that add curb appeal, manage drainage, and create outdoor spaces you'll actually use.",
-    bullets: ["Grading & drainage", "Retaining walls", "Outdoor living spaces", "Lawn & garden preparation", "Mulching & cleanup"],
-    img: "https://images.unsplash.com/photo-1558904541-efa843a96f01?w=800&q=80",
+    title: "Electrical",
+    tag: "Safe & Code-Compliant",
+    desc: "Our licensed electricians handle everything from outlet installation to full panel upgrades. All work is code-compliant and inspected, giving you peace of mind that your home's electrical system is safe, modern, and reliable.",
+    bullets: ["Panel upgrades & replacements", "Outlet & switch installation", "Lighting fixtures & ceiling fans", "EV charger installation", "Whole-home rewiring"],
+    img: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=800&q=80",
+  },
+  {
+    title: "Flooring",
+    tag: "Every Surface, Done Right",
+    desc: "From rustic hardwood to modern luxury vinyl, we install flooring that completes a room. We handle subfloor repair and prep, installation, and finishing with the care that protects your investment for decades.",
+    bullets: ["Hardwood installation & refinishing", "Tile & stone (kitchen, bath, entry)", "Luxury vinyl plank (LVP)", "Carpet installation", "Subfloor leveling & repair"],
+    img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80",
+  },
+  {
+    title: "Fireplace",
+    tag: "Installation & Surround Work",
+    desc: "A fireplace transforms any room. We install gas, electric, and wood-burning fireplaces and build custom surrounds — from sleek modern stone to classic craftsman tile — that become the focal point of your living space.",
+    bullets: ["Gas & electric fireplace installation", "Wood-burning fireplace builds", "Custom tile & stone surrounds", "Mantel installation", "Fireplace refacing & updates"],
+    img: "https://images.unsplash.com/photo-1571752726703-5e7d1f6a986d?w=800&q=80",
+  },
+  {
+    title: "Basement",
+    tag: "Finishing & Conversion",
+    desc: "Your unfinished basement is untapped square footage. We convert raw basement space into livable, comfortable rooms — home offices, gyms, playrooms, in-law suites, or entertainment spaces — with full framing, insulation, drywall, flooring, and electrical.",
+    bullets: ["Full basement finishing", "Framing & insulation", "Egress window installation", "Waterproofing coordination", "In-law suite & rental unit conversions"],
+    img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80",
+  },
+  {
+    title: "Painting",
+    tag: "Interior & Exterior",
+    desc: "Professional painting transforms a space more than almost anything else. Our painters are meticulous — proper surface preparation, quality primer, clean lines, and a durable finish that looks great and holds up over time. Residential and commercial clients welcome.",
+    bullets: ["Interior painting (walls, ceilings, trim)", "Exterior painting & staining", "Cabinet refinishing & painting", "Commercial painting", "Deck & fence staining"],
+    img: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=800&q=80",
+  },
+  {
+    title: "Remodeling",
+    tag: "Full-Room Renovations",
+    desc: "Beyond kitchens, we handle bathrooms, living rooms, additions, and whole-home renovations. Bring us your vision — a layout change, an aging space that needs refreshing, or a new addition — and we'll make it happen with craftsmanship that lasts.",
+    bullets: ["Bathroom remodels", "Room additions", "Open floor plan conversions", "Whole-home renovations", "Custom built-ins & millwork"],
+    img: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&q=80",
+  },
+  {
+    title: "Handyman",
+    tag: "Repairs & Maintenance",
+    desc: "Not every job needs a full crew — but every job deserves quality work. Our handyman team handles the everyday repairs, fixes, and small improvements that keep your home or business running at its best. Fast response, reliable service, fair pricing.",
+    bullets: ["Door & window repairs", "Drywall patching & touch-ups", "Fixture installation", "Caulking & weatherstripping", "General home maintenance"],
+    img: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=80",
   },
 ];
 
@@ -84,7 +91,7 @@ export default function ServicesPage() {
             <motion.p variants={fadeUp} className="text-accent font-semibold tracking-wider text-sm uppercase mb-3">What We Offer</motion.p>
             <motion.h1 variants={fadeUp} className="font-display text-5xl md:text-6xl font-bold text-background mb-4">Our Services</motion.h1>
             <motion.p variants={fadeUp} className="text-background/60 text-lg max-w-2xl">
-              From a single repair to a full construction project, Suvana brings the same level of professionalism and craftsmanship to every job.
+              From a single repair to a full remodel, Suvana brings the same level of professionalism and craftsmanship to every job.
             </motion.p>
           </motion.div>
         </div>
@@ -97,7 +104,7 @@ export default function ServicesPage() {
             {SERVICES.map((svc, i) => (
               <motion.div
                 key={svc.title}
-                className={`grid lg:grid-cols-2 gap-12 items-center ${i % 2 === 1 ? "lg:flex-row-reverse" : ""}`}
+                className="grid lg:grid-cols-2 gap-12 items-center"
                 variants={fadeUp}
                 initial="hidden"
                 whileInView="show"

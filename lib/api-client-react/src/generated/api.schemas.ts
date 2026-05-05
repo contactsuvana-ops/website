@@ -34,16 +34,16 @@ export type QuoteFormBodyProjectType =
   (typeof QuoteFormBodyProjectType)[keyof typeof QuoteFormBodyProjectType];
 
 export const QuoteFormBodyProjectType = {
-  "general-construction": "general-construction",
-  handyman: "handyman",
-  remodeling: "remodeling",
-  roofing: "roofing",
-  painting: "painting",
-  flooring: "flooring",
-  electrical: "electrical",
+  "kitchen-remodeling": "kitchen-remodeling",
+  drywall: "drywall",
   plumbing: "plumbing",
-  landscaping: "landscaping",
-  other: "other",
+  electrical: "electrical",
+  flooring: "flooring",
+  fireplace: "fireplace",
+  basement: "basement",
+  painting: "painting",
+  remodeling: "remodeling",
+  handyman: "handyman",
 } as const;
 
 export type QuoteFormBodyBudget =

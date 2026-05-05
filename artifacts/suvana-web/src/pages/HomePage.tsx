@@ -1,14 +1,14 @@
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle, Phone, Shield, Award, Clock } from "lucide-react";
+import { ArrowRight, Phone, Shield, Award, Clock, CheckCircle } from "lucide-react";
 
 const SERVICES = [
-  { title: "General Construction", desc: "Full-scale new builds, additions, and structural work. We manage every phase from groundbreaking to final walkthrough.", img: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&q=80" },
-  { title: "Handyman Services", desc: "No job too small. From leaky faucets to hanging doors, we handle the repairs that keep your home running smoothly.", img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80" },
-  { title: "Remodeling & Renovation", desc: "Transform your kitchen, bathroom, or basement into the space you've always wanted with expert craftsmanship.", img: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600&q=80" },
-  { title: "Roofing", desc: "Installation, repair, and full replacement. We use premium materials and stand behind every shingle we lay.", img: "https://images.unsplash.com/photo-1632778149955-e80f8ceca2e8?w=600&q=80" },
-  { title: "Painting", desc: "Interior and exterior painting for residential and commercial properties. Clean lines, lasting finish.", img: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=600&q=80" },
-  { title: "Flooring", desc: "Hardwood, tile, carpet, and vinyl — we install every surface with precision and attention to detail.", img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80" },
+  { title: "Kitchen Remodeling", desc: "Complete kitchen transformations — custom cabinetry, countertops, layout redesign, and modern finishes that make the heart of your home shine.", img: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600&q=80" },
+  { title: "Flooring", desc: "Hardwood, tile, vinyl plank, and carpet installed with precision. We handle subfloor prep and finishing so every surface lasts for decades.", img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80" },
+  { title: "Painting", desc: "Interior and exterior painting for residential and commercial properties. Meticulous prep, clean lines, and a finish that holds up.", img: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=600&q=80" },
+  { title: "Electrical", desc: "Licensed electricians for panel upgrades, outlet installs, lighting fixtures, and everything in between — all code-compliant and inspected.", img: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&q=80" },
+  { title: "Plumbing", desc: "From leaky pipes to full fixture installs, our licensed plumbers fix it right the first time. Fast response, residential and commercial.", img: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=600&q=80" },
+  { title: "Basement", desc: "Transform your unfinished basement into a functional living space. Framing, insulation, drywall, flooring — we do it all.", img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80" },
 ];
 
 const STATS = [
@@ -23,6 +23,12 @@ const WHY = [
   { icon: Award, title: "Certified Craftsmen", desc: "Our team carries industry certifications and ongoing training." },
   { icon: Clock, title: "On Time, Every Time", desc: "We respect your schedule. Projects delivered when promised." },
   { icon: CheckCircle, title: "Satisfaction Guaranteed", desc: "We don't consider a job done until you're completely happy." },
+];
+
+const TRUST_BADGES = [
+  { symbol: "✓", label: "Fully Licensed" },
+  { symbol: "🛡", label: "Insured" },
+  { symbol: "⭐", label: "Trusted Local" },
 ];
 
 const fadeUp = {
@@ -61,7 +67,7 @@ export default function HomePage() {
             <motion.p variants={fadeUp} className="text-background/70 text-lg md:text-xl leading-relaxed mb-10 max-w-xl">
               From handyman repairs to full-scale construction, Suvana delivers craftsmanship that stands the test of time. Serving homeowners and businesses with honest work and fair pricing.
             </motion.p>
-            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4">
+            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4 mb-10">
               <Link
                 href="/quote"
                 className="inline-flex items-center justify-center gap-2 rounded-sm bg-accent px-8 py-4 text-base font-semibold text-white shadow-lg hover:bg-accent/90 transition-colors"
@@ -76,6 +82,19 @@ export default function HomePage() {
                 <Phone className="h-4 w-4" />
                 Contact Us
               </Link>
+            </motion.div>
+
+            {/* Trust Badges */}
+            <motion.div variants={fadeUp} className="flex flex-wrap gap-3">
+              {TRUST_BADGES.map(({ symbol, label }) => (
+                <div
+                  key={label}
+                  className="inline-flex items-center gap-2 rounded-sm border border-background/20 bg-background/10 backdrop-blur px-4 py-2"
+                >
+                  <span className="text-base leading-none">{symbol}</span>
+                  <span className="text-sm font-semibold text-background">{label}</span>
+                </div>
+              ))}
             </motion.div>
           </motion.div>
         </div>

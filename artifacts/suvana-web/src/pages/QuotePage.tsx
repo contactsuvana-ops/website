@@ -10,7 +10,7 @@ const schema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
   phone: z.string().min(7, "Please enter a valid phone number"),
-  projectType: z.enum(["general-construction","handyman","remodeling","roofing","painting","flooring","electrical","plumbing","landscaping","other"], {
+  projectType: z.enum(["kitchen-remodeling","drywall","plumbing","electrical","flooring","fireplace","basement","painting","remodeling","handyman"], {
     errorMap: () => ({ message: "Please select a project type" }),
   }),
   location: z.string().min(2, "Please enter a location"),
@@ -23,16 +23,16 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 const PROJECT_TYPES = [
-  { value: "general-construction", label: "General Construction" },
-  { value: "handyman", label: "Handyman Services" },
-  { value: "remodeling", label: "Remodeling & Renovation" },
-  { value: "roofing", label: "Roofing" },
-  { value: "painting", label: "Painting" },
-  { value: "flooring", label: "Flooring" },
-  { value: "electrical", label: "Electrical" },
+  { value: "kitchen-remodeling", label: "Kitchen Remodeling" },
+  { value: "drywall", label: "Drywall" },
   { value: "plumbing", label: "Plumbing" },
-  { value: "landscaping", label: "Landscaping" },
-  { value: "other", label: "Other" },
+  { value: "electrical", label: "Electrical" },
+  { value: "flooring", label: "Flooring" },
+  { value: "fireplace", label: "Fireplace" },
+  { value: "basement", label: "Basement" },
+  { value: "painting", label: "Painting" },
+  { value: "remodeling", label: "Remodeling" },
+  { value: "handyman", label: "Handyman" },
 ];
 
 const BUDGETS = [

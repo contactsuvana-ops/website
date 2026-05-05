@@ -5,16 +5,16 @@ import { z } from "zod/v4";
 export const submissionTypeEnum = pgEnum("submission_type", ["contact", "quote"]);
 
 export const projectTypeEnum = pgEnum("project_type", [
-  "general-construction",
-  "handyman",
-  "remodeling",
-  "roofing",
-  "painting",
-  "flooring",
-  "electrical",
+  "kitchen-remodeling",
+  "drywall",
   "plumbing",
-  "landscaping",
-  "other",
+  "electrical",
+  "flooring",
+  "fireplace",
+  "basement",
+  "painting",
+  "remodeling",
+  "handyman",
 ]);
 
 export const budgetEnum = pgEnum("budget_range", [

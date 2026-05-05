@@ -99,16 +99,16 @@ function escHtml(str: string): string {
 
 function formatProjectType(pt: string): string {
   const map: Record<string, string> = {
-    "general-construction": "General Construction",
-    handyman: "Handyman Services",
-    remodeling: "Remodeling & Renovation",
-    roofing: "Roofing",
-    painting: "Painting",
-    flooring: "Flooring",
-    electrical: "Electrical",
+    "kitchen-remodeling": "Kitchen Remodeling",
+    drywall: "Drywall",
     plumbing: "Plumbing",
-    landscaping: "Landscaping",
-    other: "Other",
+    electrical: "Electrical",
+    flooring: "Flooring",
+    fireplace: "Fireplace",
+    basement: "Basement",
+    painting: "Painting",
+    remodeling: "Remodeling",
+    handyman: "Handyman",
   };
   return map[pt] ?? pt;
 }
