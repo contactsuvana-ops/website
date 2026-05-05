@@ -1,0 +1,41 @@
+Title:
+Create a Dynamic Full-Stack Website for Suvana Constructions (React, Node.js, Firestore)
+
+Problem Statement:
+Develop a modern, dynamic, and professional website for Suvana Constructions, drawing inspiration and content from the current one-page app at https://suvanallc.github.io. The new web application must use:
+
+Frontend: React (with strong UI/UX emphasis, not AI-generated look or "last-minute" feel)
+Backend: Node.js (Express recommended)
+Database: Google Firestore (Cloud Firestore)
+Core Requirements:
+
+Services Section:
+
+Pull all service offerings from the existing site.
+Each service must have a dedicated section with a descriptive paragraph (draw from or expand on current descriptions).
+Use high-quality placeholder photos for now, one per service card or section.
+Contact & Quote Forms:
+
+Add dedicated “Contact Us” and “Request a Quote” forms (separate pages/sections).
+Forms should collect user information: name, email, phone, message, and additional fields relevant to construction quotes (e.g., project type, location, budget).
+Validate inputs on the frontend before submission.
+Backend Form Handling:
+
+Upon form submission:
+Store the submitted data in Firestore for future analysis.
+Trigger an email containing the submission details and user’s contact info to contactsuvana@gmail.com (you may use Nodemailer with Gmail SMTP, or other reliable email APIs such as SendGrid, Mailgun, etc.).
+Incorporate measures to prevent spam/bots (e.g., simple CAPTCHA or Google reCAPTCHA).
+Design/Styling:
+
+The overall visual design should be modern, polished, and professional.
+Don’t use overly generic templates or obvious AI-generated elements; prioritize trustworthiness, clarity, and user experience.
+Use your discretion to select visually appealing fonts, colors, and layouts.
+Ensure the website is fully responsive and mobile-friendly.
+Other:
+
+Build and expose a clear API (e.g., /api/contact, /api/quote) for frontend to backend communication.
+Code should be well-structured and maintainable (use functional components, modular folder structure, etc.).
+Deployable (dockerized is a plus, but not mandatory).
+Staff/admin (future-facing): Page/endpoint (protected) to view/export submissions.
+Summary:
+The finished project will be a full-stack web app (React + Node.js/Express + Firestore) for Suvana Constructions, with forms to collect user inquiries and quotes, persistent storage, and email notifications to contactsuvana@gmail.com. Services content and descriptions should be based on the current site, but with visual and UX upgrades.

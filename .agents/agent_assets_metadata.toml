@@ -1,0 +1,62 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "CHCsK4SdVQuHBC_ZmIjOj"
+uri = "file://artifacts/suvana-web/public/images/service-general.png"
+type = "image"
+title = "General Construction site"
+
+[[generated]]
+id = "yj9VAOG7sRSw8K9q5oE6q"
+uri = "file://artifacts/suvana-web/public/images/service-handyman.png"
+type = "image"
+title = "Handyman repairs"
+
+[[generated]]
+id = "b3QxahGry4ugd9gZFDBGG"
+uri = "file://artifacts/suvana-web/public/images/service-remodel.png"
+type = "image"
+title = "Kitchen remodel"
+
+[[generated]]
+id = "gysixlx7O0ujME4EPpF_d"
+uri = "file://artifacts/suvana-web/public/images/service-roofing.png"
+type = "image"
+title = "Roofing installation"
+
+[[generated]]
+id = "lTMWgRHnTtGc3_Ys3g45E"
+uri = "file://artifacts/suvana-web/public/images/service-painting.png"
+type = "image"
+title = "Painting house interior"
+
+[[generated]]
+id = "ET9fJpofhE-2vQ11IjlcO"
+uri = "file://artifacts/suvana-web/public/images/service-flooring.png"
+type = "image"
+title = "Hardwood floor installation"
+
+[[generated]]
+id = "eJ5fGkyeVDVPlfsRt4bsZ"
+uri = "file://artifacts/suvana-web/public/images/service-electrical.png"
+type = "image"
+title = "Electrical panel work"
+
+[[generated]]
+id = "OcDB6JFTTIZlfxPQNNR17"
+uri = "file://artifacts/suvana-web/public/images/service-plumbing.png"
+type = "image"
+title = "Plumbing pipe repair"
+
+[[generated]]
+id = "9nlHErulqGggcLAa1bFaC"
+uri = "file://artifacts/suvana-web/public/images/service-landscaping.png"
+type = "image"
+title = "Landscaping grading"
+
+[[generated]]
+id = "Z9z2VjHoLjgLkETZdKn-A"
+uri = "file://artifacts/suvana-web/public/images/hero-bg.png"
+type = "image"
+title = "Hero background"

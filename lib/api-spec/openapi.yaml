@@ -3,20 +3,25 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Suvana Constructions API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: contact
+    description: Contact form submissions
+  - name: quote
+    description: Quote request submissions
+  - name: submissions
+    description: Admin - view all submissions
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +29,105 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /contact:
+    post:
+      operationId: submitContact
+      tags: [contact]
+      summary: Submit a contact inquiry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactFormBody"
+      responses:
+        "201":
+          description: Contact submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubmissionResult"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /quote:
+    post:
+      operationId: submitQuote
+      tags: [quote]
+      summary: Submit a quote request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuoteFormBody"
+      responses:
+        "201":
+          description: Quote request submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubmissionResult"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /submissions:
+    get:
+      operationId: getSubmissions
+      tags: [submissions]
+      summary: Get all form submissions (admin)
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [contact, quote, all]
+          required: false
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          required: false
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          required: false
+      responses:
+        "200":
+          description: List of submissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubmissionsPage"
+
+  /submissions/stats:
+    get:
+      operationId: getSubmissionStats
+      tags: [submissions]
+      summary: Get submission statistics
+      responses:
+        "200":
+          description: Submission stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubmissionStats"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +135,172 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    ContactFormBody:
+      type: object
+      required: [name, email, phone, message]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          minLength: 7
+          maxLength: 20
+        message:
+          type: string
+          minLength: 10
+          maxLength: 2000
+        honeypot:
+          type: string
+          description: Anti-spam honeypot field, must be empty
+
+    QuoteFormBody:
+      type: object
+      required: [name, email, phone, projectType, location, message]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          minLength: 7
+          maxLength: 20
+        projectType:
+          type: string
+          enum:
+            - general-construction
+            - handyman
+            - remodeling
+            - roofing
+            - painting
+            - flooring
+            - electrical
+            - plumbing
+            - landscaping
+            - other
+        location:
+          type: string
+          minLength: 2
+          maxLength: 200
+        budget:
+          type: string
+          enum:
+            - under-5k
+            - 5k-15k
+            - 15k-50k
+            - 50k-100k
+            - over-100k
+            - not-sure
+        timeline:
+          type: string
+          enum:
+            - asap
+            - 1-3-months
+            - 3-6-months
+            - 6-12-months
+            - flexible
+        message:
+          type: string
+          minLength: 10
+          maxLength: 2000
+        honeypot:
+          type: string
+          description: Anti-spam honeypot field, must be empty
+
+    SubmissionResult:
+      type: object
+      required: [success, id, message]
+      properties:
+        success:
+          type: boolean
+        id:
+          type: integer
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    Submission:
+      type: object
+      required: [id, type, name, email, phone, message, createdAt]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [contact, quote]
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        projectType:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        budget:
+          type: string
+          nullable: true
+        timeline:
+          type: string
+          nullable: true
+        message:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    SubmissionsPage:
+      type: object
+      required: [submissions, total, page, limit]
+      properties:
+        submissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Submission"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    SubmissionStats:
+      type: object
+      required: [totalContacts, totalQuotes, recentSubmissions]
+      properties:
+        totalContacts:
+          type: integer
+        totalQuotes:
+          type: integer
+        recentSubmissions:
+          type: integer
+          description: Submissions in last 30 days
+        byProjectType:
+          type: array
+          items:
+            type: object
+            required: [projectType, count]
+            properties:
+              projectType:
+                type: string
+              count:
+                type: integer
