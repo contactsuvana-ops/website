@@ -24,12 +24,11 @@ export function Navbar() {
               src="https://suvanaconstruction.com/logo.png" 
               alt="Suvana Construction Logo" 
               className="h-10 w-auto object-contain"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.nextElementSibling?.classList.remove('hidden');
-              }}
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
             />
-            <span className="hidden font-display text-xl font-bold tracking-tight text-primary">Suvana Construction</span>
+            <span className="font-display text-lg font-bold tracking-tight text-foreground leading-tight">
+              Suvana<br /><span className="text-accent text-xs font-semibold tracking-widest uppercase">Constructions</span>
+            </span>
           </Link>
 
           {/* Desktop Nav */}
