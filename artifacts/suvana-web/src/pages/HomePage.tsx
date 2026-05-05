@@ -11,12 +11,6 @@ const SERVICES = [
   { title: "Basement", desc: "Transform your unfinished basement into a functional living space. Framing, insulation, drywall, flooring — we do it all.", img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80" },
 ];
 
-const STATS = [
-  { value: "500+", label: "Projects Completed" },
-  { value: "12+", label: "Years Experience" },
-  { value: "98%", label: "Client Satisfaction" },
-  { value: "50+", label: "Certified Pros" },
-];
 
 const WHY = [
   { icon: Shield, title: "Licensed & Insured", desc: "Full coverage on every project. You're protected." },
@@ -97,20 +91,6 @@ export default function HomePage() {
               ))}
             </motion.div>
           </motion.div>
-        </div>
-      </section>
-
-      {/* Stats */}
-      <section className="bg-accent py-12">
-        <div className="container mx-auto px-4 md:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {STATS.map((s) => (
-              <div key={s.label} className="text-center">
-                <div className="font-display text-4xl md:text-5xl font-bold text-white">{s.value}</div>
-                <div className="text-white/80 text-sm mt-1 font-medium">{s.label}</div>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
