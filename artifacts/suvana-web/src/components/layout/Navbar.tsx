@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Menu, X, Home, Briefcase, FileText, Phone, LayoutDashboard } from "lucide-react";
+import { Menu, X, Home, Briefcase, FileText, Phone } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -47,9 +47,6 @@ export function Navbar() {
               ))}
             </div>
             <div className="flex items-center gap-4">
-              <Link href="/admin" className="text-muted-foreground hover:text-foreground">
-                <LayoutDashboard className="h-5 w-5" />
-              </Link>
               <Link href="/quote" className="inline-flex items-center justify-center rounded-md bg-accent px-6 py-2.5 text-sm font-medium text-accent-foreground shadow-sm transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50">
                 Get a Quote
               </Link>
@@ -91,14 +88,6 @@ export function Navbar() {
                 </Link>
               ))}
               <div className="my-4 h-px w-full bg-border" />
-              <Link
-                href="/admin"
-                className="flex items-center gap-3 text-lg font-medium text-muted-foreground"
-                onClick={() => setIsOpen(false)}
-              >
-                <LayoutDashboard className="h-5 w-5" />
-                Admin Dashboard
-              </Link>
               <Link
                 href="/quote"
                 className="mt-4 flex w-full items-center justify-center rounded-md bg-accent px-4 py-3 text-base font-medium text-accent-foreground shadow-sm hover:bg-accent/90"

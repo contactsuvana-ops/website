@@ -47,3 +47,5 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+*/dataconnect
+artifacts/suvana-web/dataconnect/

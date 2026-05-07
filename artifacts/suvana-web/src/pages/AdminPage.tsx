@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   useGetSubmissions,
@@ -11,6 +12,7 @@ import {
   getGetCommentsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAdminAuth } from "@/hooks/use-admin-auth";
 import {
   Users,
   FileText,
@@ -25,6 +27,7 @@ import {
   Trash2,
   Lock,
   Globe,
+  LogOut,
 } from "lucide-react";
 
 type FilterType = "all" | "contact" | "quote";
@@ -328,9 +331,16 @@ function SubmissionRow({
 }
 
 export default function AdminPage() {
+  const [, setLocation] = useLocation();
+  const { logout } = useAdminAuth();
   const [filter, setFilter] = useState<FilterType>("all");
   const [page, setPage] = useState(1);
   const limit = 15;
+
+  const handleLogout = () => {
+    logout();
+    setLocation("/");
+  };
 
   const params = { type: filter, page, limit };
 
@@ -348,9 +358,18 @@ export default function AdminPage() {
     <div className="min-h-screen bg-muted/30">
       {/* Header */}
       <div className="bg-foreground py-16">
-        <div className="container mx-auto px-4 md:px-6 lg:px-8">
-          <h1 className="font-display text-4xl font-bold text-background">Admin Dashboard</h1>
-          <p className="text-background/50 mt-2">Suvana Constructions — Form Submissions</p>
+        <div className="container mx-auto px-4 md:px-6 lg:px-8 flex items-center justify-between">
+          <div>
+            <h1 className="font-display text-4xl font-bold text-background">Admin Dashboard</h1>
+            <p className="text-background/50 mt-2">Suvana Constructions — Form Submissions</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="inline-flex items-center gap-2 rounded-md bg-background/10 hover:bg-background/20 px-4 py-2 text-sm font-medium text-background transition-colors"
+          >
+            <LogOut className="h-4 w-4" />
+            Logout
+          </button>
         </div>
       </div>
 

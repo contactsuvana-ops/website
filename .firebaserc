@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "suvana-97279"
+  },
+  "targets": {
+    "suvana-97279": {
+      "hosting": {
+        "suvana-web": [
+          "suvana-97279"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

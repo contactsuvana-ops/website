@@ -1,0 +1,23 @@
+I0506 15:41:58.938321   32800 load.go:31] Reloading schema and connectors...
+I0506 15:41:58.956272   32800 control.go:100] [projects/emulator/locations/emulator/services/suvana-web de69] UpdateResources(): done
+Main schema: sources: schema\schema.gql [1992B] 
+Connector "example": sources: example\mutations.gql [1243B] example\queries.gql [1801B] 
+I0506 15:41:58.971415   32800 codegen.go:101] [connector "example" javascriptSdk] Generating sources into "C:\\Projects\\Suvana-Website\\artifacts\\suvana-web\\src\\dataconnect-generated"
+I0506 15:41:58.991141   32800 collector.go:107] schema extensions wrote into "C:\\Projects\\Suvana-Website\\artifacts\\suvana-web\\dataconnect\\.dataconnect\\schema"
+Generated sources: prelude.gql [83799B] main\implicit.gql [1261B] main\input.gql [28927B] main\relation.gql [14318B] main\query.gql [5099B] main\mutation.gql [13679B] 
+I0506 15:41:58.997675   32800 collector.go:107] connector "example" javascriptSdk wrote into "C:\\Projects\\Suvana-Website\\artifacts\\suvana-web\\src\\dataconnect-generated"
+Generated sources: README.md [41235B] react\esm\package.json [17B] .guides/setup.md [1682B] esm\index.esm.js [5268B] react\index.d.ts [3961B] react\esm\index.esm.js [3269B] index.d.ts [8426B] index.cjs.js [5812B] react\index.cjs.js [3439B] react\README.md [48299B] .guides/usage.md [3489B] .guides/config.json [236B] esm\package.json [17B] package.json [853B] react\package.json [460B] 
+I0506 15:41:59.002540   32800 installsdk.go:86] Running command: C:\Program Files\nodejs\npm.cmd install file:src\dataconnect-generated
+E0506 15:42:01.799527   32800 installsdk.go:88] Failed to install package: exit status 1
+I0506 15:42:01.799527   32800 load.go:109] Finished reloading
+I0506 15:42:01.801042   32800 dev.go:104] Listening on address (HTTP + gRPC): 127.0.0.1:9399
+I0506 15:42:01.802092   32800 dev.go:104] Listening on address (HTTP + gRPC): [::1]:9399
+I0506 15:42:03.639408   32800 control.go:100] [projects/emulator/locations/emulator/services/suvana-web 9b70] UpdateResources(): done
+Main schema: sources: schema\schema.gql [1992B] 
+Connector "example": sources: example\mutations.gql [1243B] example\queries.gql [1801B] 
+I0506 15:42:03.647376   32800 configure_emulator.go:21] ConfigureEmulator successed
+Request: service_id:  "suvana-web"
+connection_string:  "postgres://127.0.0.1:5433/fdcdb?sslmode=disable"
+database:  "fdcdb"
+
+Response: 

@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { ProtectedAdminRoute } from "@/components/admin/ProtectedAdminRoute";
 import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/HomePage";
 import ServicesPage from "@/pages/ServicesPage";
@@ -39,7 +40,7 @@ function Router() {
       <Route path="/services" component={() => <Layout><ServicesPage /></Layout>} />
       <Route path="/contact" component={() => <Layout><ContactPage /></Layout>} />
       <Route path="/quote" component={() => <Layout><QuotePage /></Layout>} />
-      <Route path="/admin" component={() => <AdminLayout><AdminPage /></AdminLayout>} />
+      <Route path="/admin" component={() => <AdminLayout><ProtectedAdminRoute><AdminPage /></ProtectedAdminRoute></AdminLayout>} />
       <Route component={NotFound} />
     </Switch>
   );

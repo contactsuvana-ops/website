@@ -2,7 +2,7 @@
 
 ## Overview
 
-Full-stack professional website for Suvana Construction LLC — a handyman and general construction company. Built with React + Vite frontend and Express backend, connected to PostgreSQL.
+Full-stack professional website for Suvana Construction LLC — a handyman and general construction company. Built with React + Vite frontend and Express backend, connected to **Firebase Firestore** (or PostgreSQL).
 
 ## Stack
 
@@ -12,7 +12,7 @@ Full-stack professional website for Suvana Construction LLC — a handyman and g
 - **TypeScript version**: 5.9
 - **Frontend**: React + Vite + Tailwind CSS + Framer Motion + Wouter routing
 - **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
+- **Database**: Firebase Firestore (or PostgreSQL + Drizzle ORM)
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
 - **Email**: Nodemailer (SMTP — configure env vars to activate)
@@ -44,12 +44,81 @@ Set these env vars to enable email notifications to contactsuvana@gmail.com:
 
 Without these, form submissions are stored in the database but emails are skipped (logged as warning).
 
+## Database Configuration
+
+### Firestore (Default, Production-Ready)
+
+The application uses **Firebase Firestore** by default — a scalable, cloud-hosted NoSQL database.
+
+**Local Development:**
+```bash
+# Set these environment variables
+export NODE_ENV=development
+export FIRESTORE_EMULATOR_HOST=localhost:8080
+
+# Start the Firestore emulator
+firebase emulators:start
+```
+
+**Production:**
+Set `FIREBASE_CREDENTIALS` (JSON) or individual Firebase env vars. See [FIRESTORE_SETUP.md](./FIRESTORE_SETUP.md) for details.
+
+### PostgreSQL (Legacy Support)
+
+To use PostgreSQL instead:
+```bash
+export DATABASE_URL=postgresql://user:password@localhost:5432/suvana
+export USE_FIRESTORE=false
+```
+
+See [FIRESTORE_SETUP.md](./FIRESTORE_SETUP.md) for comprehensive configuration and migration guides.
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 22+
+- pnpm
+- Java 11+ (for Firestore emulator)
+- Firebase CLI (for emulator)
+
+### Local Development Setup
+
+1. **Install dependencies:**
+   ```bash
+   pnpm install
+   ```
+
+2. **Start Firestore emulator** (in one terminal):
+   ```bash
+   firebase emulators:start
+   ```
+
+3. **Start the backend API** (in another terminal):
+   ```bash
+   export NODE_ENV=development
+   export FIRESTORE_EMULATOR_HOST=localhost:8080
+   pnpm --filter @workspace/api-server run dev
+   ```
+   API runs on `http://localhost:3000`
+
+4. **Start the frontend** (in another terminal):
+   ```bash
+   cd artifacts/suvana-web
+   export PORT=5173
+   export BASE_PATH=/
+   pnpm run dev
+   ```
+   Frontend runs on `http://localhost:5173`
+
 ## Key Commands
 
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
+- `pnpm --filter @workspace/db run push` — push DB schema changes (PostgreSQL only)
+- `pnpm --filter @workspace/api-server run dev` — start backend API server
+- `pnpm --filter @workspace/suvana-web run dev` — start frontend dev server
 
 ## Services Covered
 
