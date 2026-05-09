@@ -1,12 +1,14 @@
 # Settings for Backend (on Cloud Run).
 # See https://firebase.google.com/docs/app-hosting/configure#cloud-run
 
-# Note: Build configuration is handled by Dockerfile
-# for proper pnpm monorepo support
-
 runConfig:
   minInstances: 0
-  # maxInstances: 100
+  maxInstances: 10
+  environmentVariables:
+    - variable: NODE_ENV
+      value: production
+    - variable: PORT
+      value: "8080"
   # concurrency: 80
   # cpu: 1
   # memoryMiB: 512

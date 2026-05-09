@@ -34,7 +34,12 @@ export function useAdminAuth() {
 
   const authenticate = async (username: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch("/api/admin/authenticate", {
+      const apiUrl = import.meta.env.VITE_API_URL || "";
+      const endpoint = apiUrl 
+        ? `${apiUrl}/api/admin/authenticate`
+        : "/api/admin/authenticate";
+      
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),

@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { getSubmissionsRepository, SubmissionType } from "@workspace/db";
-import { SubmitQuoteBody } from "@workspace/api-zod";
+import { getSubmissionsRepository, SubmissionType } from "../db";
+import { SubmitQuoteBody } from "../validation";
 import { sendQuoteEmail } from "../lib/email";
 import { logger } from "../lib/logger";
 

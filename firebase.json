@@ -44,11 +44,9 @@
   "apphosting": [
     {
       "backendId": "suvana-api",
-      "rootDir": ".",
+      "rootDir": "artifacts/api-server",
       "builderConfig": {
-        "dockerfile": {
-          "path": "artifacts/api-server/Dockerfile"
-        }
+        "nodeVersion": "22"
       }
     }
   ],

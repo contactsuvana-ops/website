@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { getSubmissionsRepository } from "@workspace/db";
-import { GetSubmissionsQueryParams } from "@workspace/api-zod";
+import { getSubmissionsRepository } from "../db";
+import { GetSubmissionsQueryParams } from "../validation";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();

@@ -1,44 +1,40 @@
-FROM node:22-alpine AS builder
+FROM node:22-slim
 
-# Install pnpm
+# Install pnpm for build
 RUN npm install -g pnpm
 
-# Set working directory - use monorepo root for install
-WORKDIR /app
+# Build from monorepo root context
+WORKDIR /workspace
 
-# Copy workspace files from root context
-COPY pnpm-workspace.yaml pnpm-lock.yaml ./
-COPY package.json ./
-COPY lib ./lib
-COPY artifacts/api-server ./artifacts/api-server
+# Copy everything
+COPY . .
 
-# Install dependencies using pnpm
+# Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Build the API server
-WORKDIR /app/artifacts/api-server
-RUN pnpm run build
+# Build api-server
+RUN cd artifacts/api-server && pnpm run build
 
-# Runtime stage
-FROM node:22-alpine
+# Prepare runtime directory
+RUN mkdir -p /runtime && \
+    cp -r artifacts/api-server/dist /runtime/ && \
+    cp -r artifacts/api-server/node_modules /runtime/
+
+# Final stage - no pnpm
+FROM node:22-slim
 
 WORKDIR /app
 
-# Copy dist from builder
-COPY --from=builder /app/artifacts/api-server/dist ./dist
+# Copy only the built code and node_modules
+COPY --from=0 /runtime/dist .
+COPY --from=0 /runtime/node_modules ./node_modules
 
-# Copy node_modules for production dependencies only
-COPY --from=builder /app/artifacts/api-server/node_modules ./node_modules
-
-# Set Node environment to production
 ENV NODE_ENV=production
 ENV PORT=8080
 
 EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:8080/healthz', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=2 \
+  CMD node -e "require('http').get('http://localhost:8080/healthz', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})" || exit 1
 
-# Start the app
-CMD ["node", "--enable-source-maps", "./dist/index.mjs"]
+CMD ["node", "index.js"]
