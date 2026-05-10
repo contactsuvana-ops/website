@@ -3,11 +3,15 @@ import admin from "firebase-admin";
 import app from "./app";
 import { logger } from "./lib/logger";
 
-// Initialize Firebase Admin SDK
+// Initialize Firebase Admin SDK with Application Default Credentials
 if (!admin.apps.length) {
-  admin.initializeApp({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-  });
+  try {
+    admin.initializeApp();
+    logger.info("Firebase Admin SDK initialized");
+  } catch (error) {
+    logger.error({ error }, "Failed to initialize Firebase Admin SDK");
+    process.exit(1);
+  }
 }
 
 const rawPort = process.env["PORT"];
