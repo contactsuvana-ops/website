@@ -1,6 +1,14 @@
 import "dotenv/config";
+import admin from "firebase-admin";
 import app from "./app";
 import { logger } from "./lib/logger";
+
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+  admin.initializeApp({
+    projectId: process.env.FIREBASE_PROJECT_ID,
+  });
+}
 
 const rawPort = process.env["PORT"];
 
