@@ -4,27 +4,45 @@
 runConfig:
   minInstances: 0
   maxInstances: 10
-  environmentVariables:
-    - variable: NODE_ENV
-      value: production
-    - variable: PORT
-      value: "8080"
-    - variable: ADMIN_USERNAME
-      value: "admin"
-    - variable: ADMIN_PASSWORD
-      value: "suvana@2026"
-    - variable: ADMIN_JWT_SECRET
-      value: "ef62176f24e52f80413f157a98c06244e0a84f110b9e51ba65cabf2c01a8c09f"
-    - variable: FIREBASE_STORAGE_BUCKET
-      value: "suvana-97279.firebasestorage.app"
-    - variable: SMTP_HOST
-      value: "smtp.gmail.com"
-    - variable: SMTP_PORT
-      value: "587"
-    - variable: SMTP_USER
-      value: "contactsuvana@gmail.com"
-    - variable: SMTP_PASS
-      value: "njbc ojti jgfb hvfk"
   # concurrency: 80
   # cpu: 1
   # memoryMiB: 512
+
+env:
+  - variable: NODE_ENV
+    value: production
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: ADMIN_USERNAME
+    value: admin
+    availability:
+      - RUNTIME
+  - variable: ADMIN_PASSWORD
+    value: suvana@2026
+    availability:
+      - RUNTIME
+  - variable: ADMIN_JWT_SECRET
+    value: ef62176f24e52f80413f157a98c06244e0a84f110b9e51ba65cabf2c01a8c09f
+    availability:
+      - RUNTIME
+  - variable: FIREBASE_STORAGE_BUCKET
+    value: suvana-97279.firebasestorage.app
+    availability:
+      - RUNTIME
+  - variable: SMTP_HOST
+    value: smtp.gmail.com
+    availability:
+      - RUNTIME
+  - variable: SMTP_PORT
+    value: "587"
+    availability:
+      - RUNTIME
+  - variable: SMTP_USER
+    value: contactsuvana@gmail.com
+    availability:
+      - RUNTIME
+  - variable: SMTP_PASS
+    value: njbc ojti jgfb hvfk
+    availability:
+      - RUNTIME
