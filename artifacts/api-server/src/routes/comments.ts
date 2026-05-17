@@ -1,7 +1,21 @@
 import { Router, type IRouter } from "express";
-import { getSubmissionsRepository } from "../db";
+import type admin from "firebase-admin";
+import { getSubmissionsRepository, type CommentDoc } from "../db";
 import { AddCommentBody } from "../validation";
 import { logger } from "../lib/logger";
+
+function tsToIso(ts: admin.firestore.Timestamp | undefined | null): string {
+  if (!ts) return new Date(0).toISOString();
+  return ts.toDate().toISOString();
+}
+
+function toApiComment(doc: CommentDoc & Record<string, unknown>) {
+  return {
+    ...doc,
+    isShared: (doc["isShared"] as boolean | undefined) ?? false,
+    createdAt: tsToIso(doc.createdAt),
+  };
+}
 
 const router: IRouter = Router();
 
@@ -16,7 +30,7 @@ router.get("/:id/comments", async (req, res): Promise<void> => {
       return;
     }
     const comments = await repository.getComments(submissionId);
-    res.json(comments);
+    res.json(comments.map((c) => toApiComment(c as CommentDoc & Record<string, unknown>)));
   } catch (error) {
     logger.error({ error }, "Error fetching comments");
     res.status(500).json({ error: "Internal server error" });
@@ -46,7 +60,7 @@ router.post("/:id/comments", async (req, res): Promise<void> => {
     });
 
     req.log.info({ submissionId, commentId: comment.id }, "Comment added");
-    res.status(201).json(comment);
+    res.status(201).json(toApiComment(comment as CommentDoc & Record<string, unknown>));
   } catch (error) {
     logger.error({ error }, "Error adding comment");
     res.status(500).json({ error: "Internal server error" });

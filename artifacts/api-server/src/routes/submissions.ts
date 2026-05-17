@@ -1,7 +1,17 @@
 import { Router, type IRouter } from "express";
-import { getSubmissionsRepository } from "../db";
+import type admin from "firebase-admin";
+import { getSubmissionsRepository, type SubmissionDoc } from "../db";
 import { GetSubmissionsQueryParams } from "../validation";
 import { logger } from "../lib/logger";
+
+function tsToIso(ts: admin.firestore.Timestamp | undefined | null): string {
+  if (!ts) return new Date(0).toISOString();
+  return ts.toDate().toISOString();
+}
+
+function toApiSubmission(doc: SubmissionDoc) {
+  return { ...doc, createdAt: tsToIso(doc.createdAt) };
+}
 
 const router: IRouter = Router();
 
@@ -22,7 +32,7 @@ router.get("/", async (req, res): Promise<void> => {
       limit,
     });
 
-    res.json({ items, total, page, limit });
+    res.json({ submissions: items.map(toApiSubmission), total, page, limit });
   } catch (error) {
     logger.error({ error }, "Error fetching submissions");
     res.status(500).json({ error: "Internal server error" });
@@ -34,7 +44,12 @@ router.get("/stats", async (req, res): Promise<void> => {
   try {
     const repository = getSubmissionsRepository();
     const stats = await repository.getSubmissionStats();
-    res.json(stats);
+    res.json({
+      totalContacts: stats.contact,
+      totalQuotes: stats.quote,
+      recentSubmissions: stats.recentCount,
+      byProjectType: stats.byProjectType,
+    });
   } catch (error) {
     logger.error({ error }, "Error fetching submission stats");
     res.status(500).json({ error: "Internal server error" });

@@ -160,8 +160,13 @@ export function getSubmissionsRepository() {
       new: number;
       viewed: number;
       converted: number;
+      recentCount: number;
+      byProjectType: { projectType: string; count: number }[];
     }> {
-      const [totalSnap, contactSnap, quoteSnap, newSnap, viewedSnap, convertedSnap] =
+      const thirtyDaysAgo = admin.firestore.Timestamp.fromDate(
+        new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      );
+      const [totalSnap, contactSnap, quoteSnap, newSnap, viewedSnap, convertedSnap, recentSnap, quoteDocs] =
         await Promise.all([
           col.count().get(),
           col.where("type", "==", "contact").count().get(),
@@ -169,7 +174,14 @@ export function getSubmissionsRepository() {
           col.where("status", "==", "new").count().get(),
           col.where("status", "==", "viewed").count().get(),
           col.where("status", "==", "converted").count().get(),
+          col.where("createdAt", ">=", thirtyDaysAgo).count().get(),
+          col.where("type", "==", "quote").select("projectType").get(),
         ]);
+      const ptMap = new Map<string, number>();
+      quoteDocs.forEach((d) => {
+        const pt = d.data()["projectType"] as string | undefined;
+        if (pt) ptMap.set(pt, (ptMap.get(pt) ?? 0) + 1);
+      });
       return {
         total: totalSnap.data().count,
         contact: contactSnap.data().count,
@@ -177,6 +189,8 @@ export function getSubmissionsRepository() {
         new: newSnap.data().count,
         viewed: viewedSnap.data().count,
         converted: convertedSnap.data().count,
+        recentCount: recentSnap.data().count,
+        byProjectType: Array.from(ptMap.entries()).map(([projectType, count]) => ({ projectType, count })),
       };
     },
 
