@@ -5,7 +5,21 @@ const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
 interface AuthSession {
   authenticated: boolean;
+  token: string;
   timestamp: number;
+}
+
+export function getAdminToken(): string | null {
+  try {
+    const raw = sessionStorage.getItem(ADMIN_AUTH_KEY);
+    if (!raw) return null;
+    const session: AuthSession = JSON.parse(raw);
+    if (!session.authenticated || !session.token) return null;
+    if (Date.now() - session.timestamp > SESSION_DURATION) return null;
+    return session.token;
+  } catch {
+    return null;
+  }
 }
 
 export function useAdminAuth() {
@@ -46,8 +60,10 @@ export function useAdminAuth() {
       });
 
       if (response.ok) {
+        const data = await response.json();
         const session: AuthSession = {
           authenticated: true,
+          token: data.token ?? "",
           timestamp: Date.now(),
         };
         sessionStorage.setItem(ADMIN_AUTH_KEY, JSON.stringify(session));
