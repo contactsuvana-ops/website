@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { getSubmissionsRepository, SubmissionType } from "../db";
+import { getSubmissionsRepository } from "../db";
 import { SubmitQuoteBody } from "../validation";
 import { sendQuoteEmail } from "../lib/email";
 import { logger } from "../lib/logger";
@@ -10,38 +10,30 @@ router.post("/quote", async (req, res): Promise<void> => {
   try {
     const parsed = SubmitQuoteBody.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: parsed.error.message });
+      res.status(400).json({ error: parsed.error.flatten() });
       return;
     }
 
     const { honeypot, ...data } = parsed.data;
-
-    // Honeypot spam detection
     if (honeypot && honeypot.trim().length > 0) {
-      // Silently return success to fool bots
-      res.status(201).json({ success: true, id: 0, message: "Your quote request has been received!" });
+      res.status(201).json({ success: true, message: "Your quote request has been received!" });
       return;
     }
 
-    logger.info({ data }, "Processing quote submission");
-
-    // Save to Firestore
     const repository = getSubmissionsRepository();
     const submission = await repository.createSubmission({
-      type: SubmissionType.QUOTE,
+      type: "quote",
       name: data.name,
       email: data.email,
       phone: data.phone,
       projectType: data.projectType,
       location: data.location,
-      budget: data.budget ?? null,
-      timeline: data.timeline ?? null,
+      budget: data.budget,
+      timeline: data.timeline,
+      companyName: data.companyName,
       message: data.message,
     });
 
-    logger.info({ submission }, "Quote submission saved");
-
-    // Send email notification (async, don't wait)
     sendQuoteEmail({
       name: data.name,
       email: data.email,
@@ -62,9 +54,7 @@ router.post("/quote", async (req, res): Promise<void> => {
       message: "Your quote request has been received! We will follow up within 1 business day.",
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorStack = error instanceof Error ? error.stack : undefined;
-    logger.error({ error: errorMessage, stack: errorStack }, "Error processing quote submission");
+    logger.error({ error }, "Error processing quote submission");
     res.status(500).json({ error: "Internal server error" });
   }
 });

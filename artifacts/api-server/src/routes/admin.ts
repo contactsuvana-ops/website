@@ -1,62 +1,52 @@
 import { Router } from "express";
 import crypto from "crypto";
+import { AdminAuth } from "../validation";
+import { createAdminToken } from "../middleware/auth";
 import { logger } from "../lib/logger";
 
 const router = Router();
 
-// Admin credentials - in production, these should be stored in environment variables
-// For added security, consider storing hashed credentials in a database
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
+const ADMIN_USERNAME = process.env["ADMIN_USERNAME"] ?? "admin";
+const ADMIN_PASSWORD = process.env["ADMIN_PASSWORD"] ?? "";
 
-logger.info({ ADMIN_USERNAME, ADMIN_PASSWORD }, "Admin credentials loaded");
+if (!ADMIN_PASSWORD) {
+  logger.warn("ADMIN_PASSWORD is not set — admin login will be disabled");
+}
 
-/**
- * POST /api/admin/authenticate
- * Validates admin credentials
- */
 router.post("/authenticate", async (req, res): Promise<void> => {
   try {
-    const { username, password } = req.body;
-
-    // Validate input
-    if (!username || !password) {
-      res.status(400).json({
-        success: false,
-        message: "Username and password are required",
-      });
+    const parsed = AdminAuth.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Username and password are required" });
       return;
     }
 
-    // Basic validation - in production use constant-time comparison
-    const isValid = username === ADMIN_USERNAME && password === ADMIN_PASSWORD;
+    const { username, password } = parsed.data;
 
-    if (!isValid) {
-      // Log failed attempts (optional - for security monitoring)
+    const userMatch = crypto.timingSafeEqual(
+      Buffer.from(username),
+      Buffer.from(ADMIN_USERNAME)
+    );
+    const passMatch =
+      ADMIN_PASSWORD.length > 0 &&
+      crypto.timingSafeEqual(
+        Buffer.from(password),
+        Buffer.from(ADMIN_PASSWORD)
+      );
+
+    if (!userMatch || !passMatch) {
       logger.warn({ username }, "Failed admin authentication attempt");
-      res.status(401).json({
-        success: false,
-        message: "Invalid credentials",
-      });
+      res.status(401).json({ error: "Invalid credentials" });
       return;
     }
 
-    // Generate a session token (optional - for enhanced security)
-    const sessionToken = crypto.randomBytes(32).toString("hex");
-
+    const token = createAdminToken(username);
     logger.info({ username }, "Successful admin authentication");
 
-    res.json({
-      success: true,
-      message: "Authentication successful",
-      token: sessionToken,
-    });
+    res.json({ success: true, token });
   } catch (error) {
     logger.error({ error }, "Admin authentication error");
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 

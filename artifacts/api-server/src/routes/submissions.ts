@@ -5,42 +5,73 @@ import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
-router.get("/submissions", async (req, res): Promise<void> => {
+// GET /admin/submissions
+router.get("/", async (req, res): Promise<void> => {
   try {
     const parsed = GetSubmissionsQueryParams.safeParse(req.query);
     if (!parsed.success) {
-      res.status(400).json({ error: parsed.error.message });
+      res.status(400).json({ error: parsed.error.flatten() });
       return;
     }
 
     const { type, page, limit } = parsed.data;
     const repository = getSubmissionsRepository();
-
-    const { submissions, total } = await repository.listSubmissions({
+    const { items, total } = await repository.listSubmissions({
       type: type ?? "all",
-      page: page ?? 1,
-      limit: limit ?? 20,
+      page,
+      limit,
     });
 
-    res.json({
-      submissions,
-      total,
-      page: page ?? 1,
-      limit: limit ?? 20,
-    });
+    res.json({ items, total, page, limit });
   } catch (error) {
     logger.error({ error }, "Error fetching submissions");
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
-router.get("/submissions/stats", async (req, res): Promise<void> => {
+// GET /admin/submissions/stats
+router.get("/stats", async (req, res): Promise<void> => {
   try {
     const repository = getSubmissionsRepository();
     const stats = await repository.getSubmissionStats();
     res.json(stats);
   } catch (error) {
     logger.error({ error }, "Error fetching submission stats");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /admin/submissions/:id
+router.get("/:id", async (req, res): Promise<void> => {
+  try {
+    const id = String(req.params["id"]).trim();
+    const repository = getSubmissionsRepository();
+    const submission = await repository.getSubmission(id);
+    if (!submission) {
+      res.status(404).json({ error: "Submission not found" });
+      return;
+    }
+    res.json(submission);
+  } catch (error) {
+    logger.error({ error }, "Error fetching submission");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// PATCH /admin/submissions/:id/status
+router.patch("/:id/status", async (req, res): Promise<void> => {
+  try {
+    const id = String(req.params["id"]).trim();
+    const { status } = req.body as { status?: string };
+    if (!["new", "viewed", "converted"].includes(status ?? "")) {
+      res.status(400).json({ error: "Invalid status. Must be new, viewed, or converted." });
+      return;
+    }
+    const repository = getSubmissionsRepository();
+    await repository.updateSubmissionStatus(id, status as "new" | "viewed" | "converted");
+    res.json({ success: true });
+  } catch (error) {
+    logger.error({ error }, "Error updating submission status");
     res.status(500).json({ error: "Internal server error" });
   }
 });

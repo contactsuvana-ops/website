@@ -9,6 +9,22 @@ runConfig:
       value: production
     - variable: PORT
       value: "8080"
+    - variable: ADMIN_USERNAME
+      value: "admin"
+    - variable: ADMIN_PASSWORD
+      value: "suvana@2026"
+    - variable: ADMIN_JWT_SECRET
+      value: "ef62176f24e52f80413f157a98c06244e0a84f110b9e51ba65cabf2c01a8c09f"
+    - variable: FIREBASE_STORAGE_BUCKET
+      value: "suvana-97279.firebasestorage.app"
+    - variable: SMTP_HOST
+      value: "smtp.gmail.com"
+    - variable: SMTP_PORT
+      value: "587"
+    - variable: SMTP_USER
+      value: "contactsuvana@gmail.com"
+    - variable: SMTP_PASS
+      value: "njbc ojti jgfb hvfk"
   # concurrency: 80
   # cpu: 1
   # memoryMiB: 512

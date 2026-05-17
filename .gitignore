@@ -41,6 +41,16 @@ testem.log
 .DS_Store
 Thumbs.db
 
+# Environment / secrets — never commit these
+.env
+.env.*
+!.env.example
+*.json
+!package.json
+!tsconfig*.json
+!firebase.json
+!firestore.indexes.json
+
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
 

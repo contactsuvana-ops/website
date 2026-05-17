@@ -4,7 +4,7 @@
   "license": "MIT",
   "scripts": {
     "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
-    "build": "pnpm run typecheck && cd artifacts/api-server && pnpm run build && cd ../suvana-web && cross-env PORT=3000 BASE_PATH=/ pnpm run build",
+    "build": "pnpm run typecheck && cd artifacts/api-server && pnpm run build && cd ../suvana-web && cross-env PORT=3000 BASE_PATH=/ VITE_API_URL=https://suvana-api--suvana-97279.us-east4.hosted.app pnpm run build",
     "build:all": "pnpm run typecheck && pnpm -r --if-present run build",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",

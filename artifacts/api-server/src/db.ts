@@ -1,102 +1,492 @@
 import admin from "firebase-admin";
 
-export enum SubmissionType {
-  QUOTE = "quote",
-  CONTACT = "contact",
-}
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-export interface Submission {
+export type SubmissionStatus = "new" | "viewed" | "converted";
+export type SubmissionType = "contact" | "quote";
+
+export interface SubmissionDoc {
   id: string;
   type: SubmissionType;
-  email: string;
+  status: SubmissionStatus;
   name: string;
+  email: string;
+  phone?: string;
   message: string;
+  projectType?: string;
+  location?: string;
+  budget?: string;
+  timeline?: string;
+  companyName?: string;
+  projectId?: string;
   createdAt: admin.firestore.Timestamp;
-  comments?: Comment[];
 }
 
-export interface Comment {
+export type ProjectStatus = "active" | "completed";
+
+export interface ProjectDoc {
   id: string;
-  text: string;
+  name: string;
+  description: string;
+  status: ProjectStatus;
+  clientName: string;
+  clientEmail: string;
+  submissionId?: string;
+  startDate: admin.firestore.Timestamp;
+  completedDate?: admin.firestore.Timestamp;
+  caseStudyId?: string;
   createdAt: admin.firestore.Timestamp;
-  createdBy: string;
+  updatedAt: admin.firestore.Timestamp;
 }
 
-const db = admin.firestore();
-const submissionsCollection = "submissions";
+export interface DiscussionDoc {
+  id: string;
+  title: string;
+  content: string;
+  projectId?: string;
+  pinned: boolean;
+  tags: string[];
+  createdBy: string;
+  createdAt: admin.firestore.Timestamp;
+  updatedAt: admin.firestore.Timestamp;
+}
 
-export async function getSubmissionsRepository() {
+export interface CommentDoc {
+  id: string;
+  content: string;
+  createdBy: string;
+  createdAt: admin.firestore.Timestamp;
+}
+
+export interface CaseStudyDoc {
+  id: string;
+  title: string;
+  clientName: string;
+  industry?: string;
+  projectId: string;
+  summary: string;
+  challenge: string;
+  solution: string;
+  results: string[];
+  technologies: string[];
+  mediaIds: string[];
+  coverImageId?: string;
+  published: boolean;
+  publishedAt?: admin.firestore.Timestamp;
+  createdAt: admin.firestore.Timestamp;
+  updatedAt: admin.firestore.Timestamp;
+}
+
+export type MediaLinkedToType = "project" | "caseStudy" | "discussion";
+
+export interface MediaDoc {
+  id: string;
+  filename: string;
+  originalName: string;
+  storagePath: string;
+  downloadUrl: string;
+  contentType: string;
+  size: number;
+  uploadedBy: string;
+  uploadedAt: admin.firestore.Timestamp;
+  linkedTo?: { type: MediaLinkedToType; id: string };
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function db() {
+  return admin.firestore();
+}
+
+function toDoc<T extends { id: string }>(
+  snap: admin.firestore.DocumentSnapshot
+): T {
+  return { id: snap.id, ...snap.data() } as unknown as T;
+}
+
+// Firestore rejects undefined field values — strip them before any write.
+function stripUndefined(obj: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined)
+  );
+}
+
+// ─── Submissions ──────────────────────────────────────────────────────────────
+
+export function getSubmissionsRepository() {
+  const col = db().collection("submissions");
+
   return {
-    async create(
-      type: SubmissionType,
-      data: Record<string, any>
-    ): Promise<string> {
-      const doc = await db.collection(submissionsCollection).add({
-        type,
+    async createSubmission(
+      data: Omit<SubmissionDoc, "id" | "createdAt" | "status">
+    ): Promise<SubmissionDoc> {
+      const ref = await col.add(stripUndefined({
         ...data,
+        status: "new" as SubmissionStatus,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
-      return doc.id;
+      }) as admin.firestore.DocumentData);
+      const snap = await ref.get();
+      return toDoc<SubmissionDoc>(snap);
     },
 
-    async findById(id: string): Promise<Submission | null> {
-      const doc = await db
-        .collection(submissionsCollection)
-        .doc(id)
-        .get();
-      if (!doc.exists) return null;
+    async getSubmission(id: string): Promise<SubmissionDoc | null> {
+      const snap = await col.doc(id).get();
+      if (!snap.exists) return null;
+      return toDoc<SubmissionDoc>(snap);
+    },
+
+    async listSubmissions(opts: {
+      type?: SubmissionType | "all";
+      page: number;
+      limit: number;
+    }): Promise<{ items: SubmissionDoc[]; total: number }> {
+      let query: admin.firestore.Query = col.orderBy("createdAt", "desc");
+      if (opts.type && opts.type !== "all") {
+        query = query.where("type", "==", opts.type);
+      }
+      const countSnap = await query.count().get();
+      const total = countSnap.data().count;
+
+      const offset = (opts.page - 1) * opts.limit;
+      const docs = await query.offset(offset).limit(opts.limit).get();
+      const items = docs.docs.map((d) => toDoc<SubmissionDoc>(d));
+      return { items, total };
+    },
+
+    async getSubmissionStats(): Promise<{
+      total: number;
+      contact: number;
+      quote: number;
+      new: number;
+      viewed: number;
+      converted: number;
+    }> {
+      const [totalSnap, contactSnap, quoteSnap, newSnap, viewedSnap, convertedSnap] =
+        await Promise.all([
+          col.count().get(),
+          col.where("type", "==", "contact").count().get(),
+          col.where("type", "==", "quote").count().get(),
+          col.where("status", "==", "new").count().get(),
+          col.where("status", "==", "viewed").count().get(),
+          col.where("status", "==", "converted").count().get(),
+        ]);
       return {
-        id: doc.id,
-        ...(doc.data() as any),
+        total: totalSnap.data().count,
+        contact: contactSnap.data().count,
+        quote: quoteSnap.data().count,
+        new: newSnap.data().count,
+        viewed: viewedSnap.data().count,
+        converted: convertedSnap.data().count,
       };
     },
 
-    async findAll(
-      type?: SubmissionType,
-      limit = 50,
-      offset = 0
-    ): Promise<Submission[]> {
-      let query = db.collection(submissionsCollection);
+    async updateSubmissionStatus(
+      id: string,
+      status: SubmissionStatus
+    ): Promise<void> {
+      await col.doc(id).update({ status });
+    },
 
-      if (type) {
-        query = query.where("type", "==", type);
-      }
-
-      const docs = await query
-        .orderBy("createdAt", "desc")
-        .limit(limit)
-        .offset(offset)
-        .get();
-
-      return docs.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as any),
-      }));
+    async linkSubmissionToProject(
+      id: string,
+      projectId: string
+    ): Promise<void> {
+      await col
+        .doc(id)
+        .update({ projectId, status: "converted" as SubmissionStatus });
     },
 
     async addComment(
       submissionId: string,
-      comment: string,
-      createdBy: string
-    ): Promise<void> {
-      await db
-        .collection(submissionsCollection)
+      data: { content: string; isShared?: boolean }
+    ): Promise<CommentDoc> {
+      const commentRef = col
         .doc(submissionId)
-        .update({
-          comments: admin.firestore.FieldValue.arrayUnion({
-            text: comment,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            createdBy,
-          }),
-        });
+        .collection("comments")
+        .doc();
+      const commentData = {
+        content: data.content,
+        isShared: data.isShared ?? false,
+        createdBy: "admin",
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      };
+      await commentRef.set(commentData);
+      const snap = await commentRef.get();
+      return toDoc<CommentDoc>(snap);
     },
 
-    async getComments(submissionId: string): Promise<Comment[]> {
-      const doc = await db
-        .collection(submissionsCollection)
+    async getComments(submissionId: string): Promise<CommentDoc[]> {
+      const snap = await col
         .doc(submissionId)
+        .collection("comments")
+        .orderBy("createdAt", "asc")
         .get();
-      return doc.data()?.comments || [];
+      return snap.docs.map((d) => toDoc<CommentDoc>(d));
+    },
+
+    async deleteComment(
+      submissionId: string,
+      commentId: string
+    ): Promise<void> {
+      await col
+        .doc(submissionId)
+        .collection("comments")
+        .doc(commentId)
+        .delete();
+    },
+  };
+}
+
+// ─── Projects ─────────────────────────────────────────────────────────────────
+
+export function getProjectsRepository() {
+  const col = db().collection("projects");
+
+  return {
+    async createProject(
+      data: Omit<ProjectDoc, "id" | "createdAt" | "updatedAt">
+    ): Promise<ProjectDoc> {
+      const now = admin.firestore.FieldValue.serverTimestamp();
+      const ref = await col.add(stripUndefined({ ...data, createdAt: now, updatedAt: now }) as admin.firestore.DocumentData);
+      const snap = await ref.get();
+      return toDoc<ProjectDoc>(snap);
+    },
+
+    async getProject(id: string): Promise<ProjectDoc | null> {
+      const snap = await col.doc(id).get();
+      if (!snap.exists) return null;
+      return toDoc<ProjectDoc>(snap);
+    },
+
+    async listProjects(opts?: {
+      status?: ProjectStatus;
+    }): Promise<ProjectDoc[]> {
+      let query: admin.firestore.Query = col.orderBy("createdAt", "desc");
+      if (opts?.status) {
+        query = query.where("status", "==", opts.status);
+      }
+      const docs = await query.get();
+      return docs.docs.map((d) => toDoc<ProjectDoc>(d));
+    },
+
+    async updateProject(
+      id: string,
+      data: Partial<
+        Omit<ProjectDoc, "id" | "createdAt" | "updatedAt">
+      >
+    ): Promise<void> {
+      await col
+        .doc(id)
+        .update({ ...data, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+    },
+
+    async completeProject(id: string): Promise<void> {
+      await col.doc(id).update({
+        status: "completed" as ProjectStatus,
+        completedDate: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    },
+
+    async linkCaseStudy(id: string, caseStudyId: string): Promise<void> {
+      await col.doc(id).update({
+        caseStudyId,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    },
+  };
+}
+
+// ─── Discussions ──────────────────────────────────────────────────────────────
+
+export function getDiscussionsRepository() {
+  const col = db().collection("discussions");
+
+  return {
+    async createDiscussion(
+      data: Omit<DiscussionDoc, "id" | "createdAt" | "updatedAt">
+    ): Promise<DiscussionDoc> {
+      const now = admin.firestore.FieldValue.serverTimestamp();
+      const ref = await col.add(stripUndefined({ ...data, createdAt: now, updatedAt: now }) as admin.firestore.DocumentData);
+      const snap = await ref.get();
+      return toDoc<DiscussionDoc>(snap);
+    },
+
+    async getDiscussion(id: string): Promise<DiscussionDoc | null> {
+      const snap = await col.doc(id).get();
+      if (!snap.exists) return null;
+      return toDoc<DiscussionDoc>(snap);
+    },
+
+    async listDiscussions(opts?: {
+      projectId?: string;
+    }): Promise<DiscussionDoc[]> {
+      let query: admin.firestore.Query = col.orderBy("pinned", "desc").orderBy("createdAt", "desc");
+      if (opts?.projectId) {
+        query = col
+          .where("projectId", "==", opts.projectId)
+          .orderBy("createdAt", "desc");
+      }
+      const docs = await query.get();
+      return docs.docs.map((d) => toDoc<DiscussionDoc>(d));
+    },
+
+    async updateDiscussion(
+      id: string,
+      data: Partial<Omit<DiscussionDoc, "id" | "createdAt" | "updatedAt">>
+    ): Promise<void> {
+      await col
+        .doc(id)
+        .update({ ...data, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+    },
+
+    async deleteDiscussion(id: string): Promise<void> {
+      // Delete comments subcollection first
+      const comments = await col.doc(id).collection("comments").get();
+      const batch = db().batch();
+      comments.docs.forEach((d) => batch.delete(d.ref));
+      batch.delete(col.doc(id));
+      await batch.commit();
+    },
+
+    async addComment(
+      discussionId: string,
+      data: { content: string; createdBy: string }
+    ): Promise<CommentDoc> {
+      const ref = col.doc(discussionId).collection("comments").doc();
+      await ref.set({
+        content: data.content,
+        createdBy: data.createdBy,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      // Update discussion updatedAt
+      await col
+        .doc(discussionId)
+        .update({ updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+      const snap = await ref.get();
+      return toDoc<CommentDoc>(snap);
+    },
+
+    async getComments(discussionId: string): Promise<CommentDoc[]> {
+      const snap = await col
+        .doc(discussionId)
+        .collection("comments")
+        .orderBy("createdAt", "asc")
+        .get();
+      return snap.docs.map((d) => toDoc<CommentDoc>(d));
+    },
+
+    async deleteComment(
+      discussionId: string,
+      commentId: string
+    ): Promise<void> {
+      await col
+        .doc(discussionId)
+        .collection("comments")
+        .doc(commentId)
+        .delete();
+    },
+  };
+}
+
+// ─── Case Studies ─────────────────────────────────────────────────────────────
+
+export function getCaseStudiesRepository() {
+  const col = db().collection("caseStudies");
+
+  return {
+    async createCaseStudy(
+      data: Omit<CaseStudyDoc, "id" | "createdAt" | "updatedAt">
+    ): Promise<CaseStudyDoc> {
+      const now = admin.firestore.FieldValue.serverTimestamp();
+      const ref = await col.add(stripUndefined({ ...data, createdAt: now, updatedAt: now }) as admin.firestore.DocumentData);
+      const snap = await ref.get();
+      return toDoc<CaseStudyDoc>(snap);
+    },
+
+    async getCaseStudy(id: string): Promise<CaseStudyDoc | null> {
+      const snap = await col.doc(id).get();
+      if (!snap.exists) return null;
+      return toDoc<CaseStudyDoc>(snap);
+    },
+
+    async listCaseStudies(onlyPublished = false): Promise<CaseStudyDoc[]> {
+      let query: admin.firestore.Query = col.orderBy("createdAt", "desc");
+      if (onlyPublished) {
+        query = col
+          .where("published", "==", true)
+          .orderBy("publishedAt", "desc");
+      }
+      const docs = await query.get();
+      return docs.docs.map((d) => toDoc<CaseStudyDoc>(d));
+    },
+
+    async updateCaseStudy(
+      id: string,
+      data: Partial<Omit<CaseStudyDoc, "id" | "createdAt" | "updatedAt">>
+    ): Promise<void> {
+      await col
+        .doc(id)
+        .update({ ...data, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+    },
+
+    async publishCaseStudy(id: string): Promise<void> {
+      await col.doc(id).update({
+        published: true,
+        publishedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    },
+
+    async unpublishCaseStudy(id: string): Promise<void> {
+      await col.doc(id).update({
+        published: false,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    },
+  };
+}
+
+// ─── Media ────────────────────────────────────────────────────────────────────
+
+export function getMediaRepository() {
+  const col = db().collection("media");
+
+  return {
+    async createMedia(
+      data: Omit<MediaDoc, "id" | "uploadedAt">
+    ): Promise<MediaDoc> {
+      const ref = await col.add(stripUndefined({
+        ...data,
+        uploadedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }) as admin.firestore.DocumentData);
+      const snap = await ref.get();
+      return toDoc<MediaDoc>(snap);
+    },
+
+    async getMedia(id: string): Promise<MediaDoc | null> {
+      const snap = await col.doc(id).get();
+      if (!snap.exists) return null;
+      return toDoc<MediaDoc>(snap);
+    },
+
+    async listMedia(opts?: {
+      linkedToType?: MediaLinkedToType;
+      linkedToId?: string;
+    }): Promise<MediaDoc[]> {
+      let query: admin.firestore.Query = col.orderBy("uploadedAt", "desc");
+      if (opts?.linkedToType && opts?.linkedToId) {
+        query = col
+          .where("linkedTo.type", "==", opts.linkedToType)
+          .where("linkedTo.id", "==", opts.linkedToId)
+          .orderBy("uploadedAt", "desc");
+      }
+      const docs = await query.get();
+      return docs.docs.map((d) => toDoc<MediaDoc>(d));
+    },
+
+    async deleteMedia(id: string): Promise<void> {
+      await col.doc(id).delete();
     },
   };
 }
