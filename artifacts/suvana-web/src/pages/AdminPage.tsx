@@ -11,8 +11,9 @@ import {
   getGetSubmissionStatsQueryKey,
   getGetCommentsQueryKey,
 } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAdminAuth } from "@/hooks/use-admin-auth";
+import { getAdminToken } from "@/hooks/use-admin-auth";
 import {
   Users,
   FileText,
@@ -28,9 +29,30 @@ import {
   Lock,
   Globe,
   LogOut,
+  Wrench,
+  Pencil,
+  X,
+  Check,
+  Database,
+  Image,
+  Video,
+  Globe,
+  CreditCard,
 } from "lucide-react";
 
 type FilterType = "all" | "contact" | "quote";
+type AdminTab = "submissions" | "services";
+
+interface Service {
+  id: string;
+  title: string;
+  tag: string;
+  desc: string;
+  bullets: string[];
+  mediaUrl: string;
+  mediaType: "image" | "video";
+  order: number;
+}
 
 const PROJECT_LABELS: Record<string, string> = {
   "kitchen-remodeling": "Kitchen Remodeling",
@@ -67,6 +89,24 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { duration: 0.45 } },
 };
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const apiBase = import.meta.env.VITE_API_URL || "";
+
+async function adminFetch(path: string, options: RequestInit = {}): Promise<Response> {
+  const token = getAdminToken();
+  return fetch(`${apiBase}/api${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers as Record<string, string> | undefined),
+    },
+  });
+}
+
+// ─── CommentsPanel ─────────────────────────────────────────────────────────────
 
 function CommentsPanel({ submissionId }: { submissionId: number }) {
   const qc = useQueryClient();
@@ -115,7 +155,6 @@ function CommentsPanel({ submissionId }: { submissionId: number }) {
         </span>
       </div>
 
-      {/* Comment list */}
       {isLoading ? (
         <p className="text-xs text-muted-foreground py-2">Loading notes…</p>
       ) : comments?.length === 0 ? (
@@ -163,7 +202,6 @@ function CommentsPanel({ submissionId }: { submissionId: number }) {
         </ul>
       )}
 
-      {/* Add note */}
       <div className="rounded-sm border border-border bg-background overflow-hidden">
         <textarea
           ref={textareaRef}
@@ -201,6 +239,8 @@ function CommentsPanel({ submissionId }: { submissionId: number }) {
     </div>
   );
 }
+
+// ─── SubmissionRow ─────────────────────────────────────────────────────────────
 
 function SubmissionRow({
   s,
@@ -282,7 +322,6 @@ function SubmissionRow({
                 className="overflow-hidden"
               >
                 <div className="px-6 py-5 bg-muted/10 border-b border-border">
-                  {/* Detail grid */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
                     {s.location && (
                       <div>
@@ -310,7 +349,6 @@ function SubmissionRow({
                     )}
                   </div>
 
-                  {/* Message */}
                   <div className="mb-1">
                     <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-1.5">Message</p>
                     <div className="rounded-sm border border-border bg-background px-4 py-3">
@@ -318,7 +356,6 @@ function SubmissionRow({
                     </div>
                   </div>
 
-                  {/* Comments */}
                   <CommentsPanel submissionId={s.id} />
                 </div>
               </motion.div>
@@ -330,9 +367,320 @@ function SubmissionRow({
   );
 }
 
+// ─── ServiceEditRow ────────────────────────────────────────────────────────────
+
+function ServiceEditRow({ service, onSaved }: { service: Service; onSaved: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const [title, setTitle] = useState(service.title);
+  const [tag, setTag] = useState(service.tag);
+  const [desc, setDesc] = useState(service.desc);
+  const [bulletsText, setBulletsText] = useState(service.bullets.join("\n"));
+  const [mediaUrl, setMediaUrl] = useState(service.mediaUrl);
+  const [mediaType, setMediaType] = useState<"image" | "video">(service.mediaType);
+
+  function resetForm() {
+    setTitle(service.title);
+    setTag(service.tag);
+    setDesc(service.desc);
+    setBulletsText(service.bullets.join("\n"));
+    setMediaUrl(service.mediaUrl);
+    setMediaType(service.mediaType);
+    setError(null);
+    setSuccess(false);
+  }
+
+  async function handleSave() {
+    const bullets = bulletsText
+      .split("\n")
+      .map((b) => b.trim())
+      .filter(Boolean);
+
+    if (!title || !tag || !desc || bullets.length === 0 || !mediaUrl) {
+      setError("All fields are required.");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const res = await adminFetch(`/admin/services/${service.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ title, tag, desc, bullets, mediaUrl, mediaType, order: service.order }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError((data as { error?: string }).error ?? "Failed to save.");
+        return;
+      }
+
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 2000);
+      onSaved();
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="border border-border rounded-sm overflow-hidden">
+      {/* Row header */}
+      <button
+        className="w-full flex items-center gap-4 px-5 py-4 hover:bg-muted/20 transition-colors text-left"
+        onClick={() => {
+          setExpanded((v) => !v);
+          if (expanded) resetForm();
+        }}
+      >
+        {/* Media thumbnail */}
+        <div className="w-14 h-10 rounded-sm overflow-hidden flex-shrink-0 bg-muted">
+          {service.mediaType === "video" ? (
+            <video src={service.mediaUrl} muted className="w-full h-full object-cover" />
+          ) : (
+            <img src={service.mediaUrl} alt={service.title} className="w-full h-full object-cover" />
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-foreground text-sm">{service.title}</p>
+          <p className="text-xs text-muted-foreground truncate">{service.tag}</p>
+        </div>
+
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span
+            className={`inline-flex items-center gap-1 rounded-sm px-2 py-0.5 text-[11px] font-medium ${
+              service.mediaType === "video"
+                ? "bg-purple-50 text-purple-700 border border-purple-200"
+                : "bg-blue-50 text-blue-700 border border-blue-200"
+            }`}
+          >
+            {service.mediaType === "video" ? <Video className="h-3 w-3" /> : <Image className="h-3 w-3" />}
+            {service.mediaType}
+          </span>
+          <span className="text-muted-foreground">
+            {expanded ? <ChevronUp className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+          </span>
+        </div>
+      </button>
+
+      {/* Edit panel */}
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="border-t border-border bg-muted/10 px-5 py-5 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-1.5">Title</label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full rounded-sm border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-1.5">Tag / Subtitle</label>
+                  <input
+                    type="text"
+                    value={tag}
+                    onChange={(e) => setTag(e.target.value)}
+                    className="w-full rounded-sm border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-1.5">Description</label>
+                <textarea
+                  value={desc}
+                  onChange={(e) => setDesc(e.target.value)}
+                  rows={3}
+                  className="w-full rounded-sm border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-1.5">
+                  Bullet Points <span className="normal-case font-normal text-muted-foreground">(one per line)</span>
+                </label>
+                <textarea
+                  value={bulletsText}
+                  onChange={(e) => setBulletsText(e.target.value)}
+                  rows={5}
+                  className="w-full rounded-sm border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent resize-none font-mono"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-1.5">Media URL</label>
+                  <input
+                    type="url"
+                    value={mediaUrl}
+                    onChange={(e) => setMediaUrl(e.target.value)}
+                    placeholder="https://…"
+                    className="w-full rounded-sm border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-1.5">Media Type</label>
+                  <select
+                    value={mediaType}
+                    onChange={(e) => setMediaType(e.target.value as "image" | "video")}
+                    className="w-full rounded-sm border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+                  >
+                    <option value="image">Image (jpg / png / gif)</option>
+                    <option value="video">Video (mp4)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Media preview */}
+              {mediaUrl && (
+                <div>
+                  <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-1.5">Preview</p>
+                  <div className="w-48 h-32 rounded-sm overflow-hidden border border-border bg-muted">
+                    {mediaType === "video" ? (
+                      <video key={mediaUrl} src={mediaUrl} muted autoPlay loop playsInline className="w-full h-full object-cover" />
+                    ) : (
+                      <img key={mediaUrl} src={mediaUrl} alt="preview" className="w-full h-full object-cover" />
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {error && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-sm px-3 py-2">{error}</p>
+              )}
+
+              <div className="flex items-center gap-3 pt-1">
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex items-center gap-1.5 bg-foreground text-background text-sm font-semibold px-5 py-2 rounded-sm hover:bg-foreground/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {success ? (
+                    <><Check className="h-4 w-4 text-green-400" /> Saved</>
+                  ) : saving ? (
+                    "Saving…"
+                  ) : (
+                    "Save Changes"
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    setExpanded(false);
+                    resetForm();
+                  }}
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="h-4 w-4" /> Cancel
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── ServicesManager ───────────────────────────────────────────────────────────
+
+function ServicesManager() {
+  const [seeding, setSeeding] = useState(false);
+  const [seedMsg, setSeedMsg] = useState<string | null>(null);
+
+  const { data: services, isLoading, refetch } = useQuery<Service[]>({
+    queryKey: ["/api/services"],
+    queryFn: async () => {
+      const res = await fetch(`${apiBase}/api/services`);
+      if (!res.ok) throw new Error("Failed to fetch services");
+      return res.json();
+    },
+  });
+
+  async function handleSeed() {
+    setSeeding(true);
+    setSeedMsg(null);
+    try {
+      const res = await adminFetch("/admin/services/seed", { method: "POST" });
+      if (res.ok) {
+        setSeedMsg("Seeded 10 default services into Firestore.");
+        refetch();
+      } else {
+        setSeedMsg("Seed failed. Check the console.");
+      }
+    } catch {
+      setSeedMsg("Network error during seed.");
+    } finally {
+      setSeeding(false);
+    }
+  }
+
+  return (
+    <div>
+      {/* Toolbar */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Service Content</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Edit service titles, descriptions, bullet points, and media. Changes go live immediately.
+          </p>
+        </div>
+        <button
+          onClick={handleSeed}
+          disabled={seeding}
+          className="flex items-center gap-2 rounded-sm border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <Database className="h-4 w-4" />
+          {seeding ? "Seeding…" : "Seed Defaults"}
+        </button>
+      </div>
+
+      {seedMsg && (
+        <p className="mb-4 text-sm text-green-700 bg-green-50 border border-green-200 rounded-sm px-4 py-2">
+          {seedMsg}
+        </p>
+      )}
+
+      {isLoading ? (
+        <div className="py-16 text-center text-sm text-muted-foreground">Loading services…</div>
+      ) : !services?.length ? (
+        <div className="py-16 text-center text-sm text-muted-foreground">
+          No services found in Firestore.{" "}
+          <button onClick={handleSeed} className="text-accent underline">Seed defaults</button> to populate them.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {services.map((svc) => (
+            <ServiceEditRow key={svc.id} service={svc} onSaved={() => refetch()} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── AdminPage ─────────────────────────────────────────────────────────────────
+
 export default function AdminPage() {
   const [, setLocation] = useLocation();
   const { logout } = useAdminAuth();
+  const [activeTab, setActiveTab] = useState<AdminTab>("submissions");
   const [filter, setFilter] = useState<FilterType>("all");
   const [page, setPage] = useState(1);
   const limit = 15;
@@ -352,6 +700,18 @@ export default function AdminPage() {
     query: { queryKey: getGetSubmissionStatsQueryKey() },
   });
 
+  const { data: qrScans } = useQuery<{ items: { id: string; count: number }[] }>({
+    queryKey: ["/api/admin/qr-scans"],
+    queryFn: async () => {
+      const res = await adminFetch("/admin/qr-scans");
+      if (!res.ok) throw new Error("Failed to fetch QR scans");
+      return res.json();
+    },
+  });
+
+  const siteVisitCount = qrScans?.items?.find((i) => i.id === "site-visit")?.count;
+  const bizCardCount = qrScans?.items?.find((i) => i.id === "quote-request")?.count;
+
   const totalPages = submissions ? Math.ceil(submissions.total / limit) : 1;
 
   return (
@@ -361,7 +721,7 @@ export default function AdminPage() {
         <div className="container mx-auto px-4 md:px-6 lg:px-8 flex items-center justify-between">
           <div>
             <h1 className="font-display text-4xl font-bold text-background">Admin Dashboard</h1>
-            <p className="text-background/50 mt-2">Suvana Constructions — Form Submissions</p>
+            <p className="text-background/50 mt-2">Suvana Constructions</p>
           </div>
           <button
             onClick={handleLogout}
@@ -373,149 +733,208 @@ export default function AdminPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 md:px-6 lg:px-8 py-12">
-        {/* Stats */}
-        <motion.div
-          className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-10"
-          variants={stagger}
-          initial="hidden"
-          animate="show"
-        >
+      {/* Tab bar */}
+      <div className="bg-foreground border-t border-background/10">
+        <div className="container mx-auto px-4 md:px-6 lg:px-8 flex gap-1">
           {[
-            {
-              icon: Users,
-              label: "Total Contacts",
-              value: stats?.totalContacts ?? "—",
-              color: "text-blue-600 bg-blue-50",
-            },
-            {
-              icon: FileText,
-              label: "Total Quotes",
-              value: stats?.totalQuotes ?? "—",
-              color: "text-accent bg-accent/10",
-            },
-            {
-              icon: Calendar,
-              label: "Last 30 Days",
-              value: stats?.recentSubmissions ?? "—",
-              color: "text-green-600 bg-green-50",
-            },
-          ].map(({ icon: Icon, label, value, color }) => (
-            <motion.div key={label} variants={fadeUp} className="bg-background rounded-sm border border-border p-6">
-              <div className={`w-10 h-10 rounded-sm flex items-center justify-center mb-3 ${color}`}>
-                <Icon className="h-5 w-5" />
-              </div>
-              <div className="font-display text-3xl font-bold text-foreground">{value}</div>
-              <div className="text-sm text-muted-foreground mt-1">{label}</div>
-            </motion.div>
-          ))}
-        </motion.div>
-
-        {/* Project Type Breakdown */}
-        {stats?.byProjectType && stats.byProjectType.length > 0 && (
-          <motion.div
-            className="bg-background rounded-sm border border-border p-6 mb-8"
-            variants={fadeUp}
-            initial="hidden"
-            animate="show"
-          >
-            <h3 className="font-semibold text-foreground mb-4">Quotes by Project Type</h3>
-            <div className="flex flex-wrap gap-2">
-              {stats.byProjectType.sort((a, b) => b.count - a.count).map((item) => (
-                <span
-                  key={item.projectType}
-                  className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-foreground"
-                >
-                  {PROJECT_LABELS[item.projectType] ?? item.projectType}
-                  <span className="rounded-full bg-accent text-white px-1.5 py-0.5 text-xs font-bold">{item.count}</span>
-                </span>
-              ))}
-            </div>
-          </motion.div>
-        )}
-
-        {/* Filter */}
-        <div className="flex items-center gap-3 mb-6">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium text-foreground">Filter:</span>
-          {(["all", "contact", "quote"] as FilterType[]).map((f) => (
+            { id: "submissions" as AdminTab, label: "Submissions", icon: FileText },
+            { id: "services" as AdminTab, label: "Services", icon: Wrench },
+          ].map(({ id, label, icon: Icon }) => (
             <button
-              key={f}
-              onClick={() => {
-                setFilter(f);
-                setPage(1);
-              }}
-              className={`rounded-sm px-4 py-1.5 text-sm font-medium capitalize transition-colors ${
-                filter === f
-                  ? "bg-foreground text-background"
-                  : "bg-background border border-border text-foreground hover:bg-muted/50"
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === id
+                  ? "border-accent text-background"
+                  : "border-transparent text-background/50 hover:text-background/80"
               }`}
             >
-              {f}
+              <Icon className="h-4 w-4" />
+              {label}
             </button>
           ))}
-          <span className="ml-auto text-xs text-muted-foreground">Click any row to expand</span>
         </div>
+      </div>
 
-        {/* Table */}
-        <div className="bg-background rounded-sm border border-border overflow-hidden">
-          {isLoading ? (
-            <div className="py-24 text-center text-muted-foreground text-sm">Loading submissions…</div>
-          ) : !submissions?.submissions.length ? (
-            <div className="py-24 text-center text-muted-foreground text-sm">No submissions found.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50 border-b border-border">
-                  <tr>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">ID</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Type</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Phone</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Project</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Budget</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date</th>
-                    <th className="px-5 py-3 w-8" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {submissions.submissions.map((s) => (
-                    <SubmissionRow key={s.id} s={s} />
+      <div className="container mx-auto px-4 md:px-6 lg:px-8 py-12">
+        {activeTab === "submissions" && (
+          <>
+            {/* Stats */}
+            <motion.div
+              className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-10"
+              variants={stagger}
+              initial="hidden"
+              animate="show"
+            >
+              {[
+                {
+                  icon: Users,
+                  label: "Total Contacts",
+                  value: stats?.totalContacts ?? "—",
+                  color: "text-blue-600 bg-blue-50",
+                },
+                {
+                  icon: FileText,
+                  label: "Total Quotes",
+                  value: stats?.totalQuotes ?? "—",
+                  color: "text-accent bg-accent/10",
+                },
+                {
+                  icon: Calendar,
+                  label: "Last 30 Days",
+                  value: stats?.recentSubmissions ?? "—",
+                  color: "text-green-600 bg-green-50",
+                },
+              ].map(({ icon: Icon, label, value, color }) => (
+                <motion.div key={label} variants={fadeUp} className="bg-background rounded-sm border border-border p-6">
+                  <div className={`w-10 h-10 rounded-sm flex items-center justify-center mb-3 ${color}`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div className="font-display text-3xl font-bold text-foreground">{value}</div>
+                  <div className="text-sm text-muted-foreground mt-1">{label}</div>
+                </motion.div>
+              ))}
+            </motion.div>
+
+            {/* Traffic cards */}
+            <motion.div
+              className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5"
+              variants={stagger}
+              initial="hidden"
+              animate="show"
+            >
+              <motion.div variants={fadeUp} className="bg-background rounded-sm border border-border p-6">
+                <div className="w-10 h-10 rounded-sm flex items-center justify-center mb-3 text-indigo-600 bg-indigo-50">
+                  <Globe className="h-5 w-5" />
+                </div>
+                <div className="font-display text-3xl font-bold text-foreground">
+                  {siteVisitCount ?? "—"}
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">Site Visits</div>
+                <p className="text-xs text-muted-foreground/70 mt-0.5">Unique browser sessions</p>
+              </motion.div>
+
+              <motion.div variants={fadeUp} className="bg-background rounded-sm border border-border p-6">
+                <div className="w-10 h-10 rounded-sm flex items-center justify-center mb-3 text-amber-600 bg-amber-50">
+                  <CreditCard className="h-5 w-5" />
+                </div>
+                <div className="font-display text-3xl font-bold text-foreground">
+                  {bizCardCount ?? "—"}
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">Business Card Visits</div>
+                <p className="text-xs text-muted-foreground/70 mt-0.5">Scans from printed QR code</p>
+              </motion.div>
+            </motion.div>
+
+            {/* Project Type Breakdown */}
+            {stats?.byProjectType && stats.byProjectType.length > 0 && (
+              <motion.div
+                className="bg-background rounded-sm border border-border p-6 mb-8"
+                variants={fadeUp}
+                initial="hidden"
+                animate="show"
+              >
+                <h3 className="font-semibold text-foreground mb-4">Quotes by Project Type</h3>
+                <div className="flex flex-wrap gap-2">
+                  {stats.byProjectType.sort((a, b) => b.count - a.count).map((item) => (
+                    <span
+                      key={item.projectType}
+                      className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-foreground"
+                    >
+                      {PROJECT_LABELS[item.projectType] ?? item.projectType}
+                      <span className="rounded-full bg-accent text-white px-1.5 py-0.5 text-xs font-bold">{item.count}</span>
+                    </span>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                </div>
+              </motion.div>
+            )}
 
-          {/* Pagination */}
-          {submissions && submissions.total > limit && (
-            <div className="border-t border-border px-5 py-4 flex items-center justify-between text-sm text-muted-foreground">
-              <span>
-                {(page - 1) * limit + 1}–{Math.min(page * limit, submissions.total)} of {submissions.total} submissions
-              </span>
-              <div className="flex items-center gap-2">
+            {/* Filter */}
+            <div className="flex items-center gap-3 mb-6">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-foreground">Filter:</span>
+              {(["all", "contact", "quote"] as FilterType[]).map((f) => (
                 <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="rounded-sm border border-border p-1.5 hover:bg-muted/50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  key={f}
+                  onClick={() => {
+                    setFilter(f);
+                    setPage(1);
+                  }}
+                  className={`rounded-sm px-4 py-1.5 text-sm font-medium capitalize transition-colors ${
+                    filter === f
+                      ? "bg-foreground text-background"
+                      : "bg-background border border-border text-foreground hover:bg-muted/50"
+                  }`}
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  {f}
                 </button>
-                <span className="text-foreground font-medium">
-                  {page} / {totalPages}
-                </span>
-                <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  className="rounded-sm border border-border p-1.5 hover:bg-muted/50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
+              ))}
+              <span className="ml-auto text-xs text-muted-foreground">Click any row to expand</span>
             </div>
-          )}
-        </div>
+
+            {/* Table */}
+            <div className="bg-background rounded-sm border border-border overflow-hidden">
+              {isLoading ? (
+                <div className="py-24 text-center text-muted-foreground text-sm">Loading submissions…</div>
+              ) : !submissions?.submissions.length ? (
+                <div className="py-24 text-center text-muted-foreground text-sm">No submissions found.</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50 border-b border-border">
+                      <tr>
+                        <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">ID</th>
+                        <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Type</th>
+                        <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name</th>
+                        <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email</th>
+                        <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Phone</th>
+                        <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Project</th>
+                        <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Budget</th>
+                        <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date</th>
+                        <th className="px-5 py-3 w-8" />
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {submissions.submissions.map((s) => (
+                        <SubmissionRow key={s.id} s={s} />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Pagination */}
+              {submissions && submissions.total > limit && (
+                <div className="border-t border-border px-5 py-4 flex items-center justify-between text-sm text-muted-foreground">
+                  <span>
+                    {(page - 1) * limit + 1}–{Math.min(page * limit, submissions.total)} of {submissions.total} submissions
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="rounded-sm border border-border p-1.5 hover:bg-muted/50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <span className="text-foreground font-medium">
+                      {page} / {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                      className="rounded-sm border border-border p-1.5 hover:bg-muted/50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {activeTab === "services" && <ServicesManager />}
       </div>
     </div>
   );

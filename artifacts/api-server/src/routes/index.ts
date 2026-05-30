@@ -11,6 +11,8 @@ import discussionsRouter from "./discussions";
 import projectsRouter from "./projects";
 import caseStudiesRouter from "./caseStudies";
 import mediaRouter from "./media";
+import { servicesPublicRouter, servicesAdminRouter } from "./services";
+import { qrScansPublicRouter, qrScansAdminRouter } from "./qrScans";
 
 const router: IRouter = Router();
 
@@ -18,6 +20,8 @@ const router: IRouter = Router();
 router.use(healthRouter);
 router.use(contactRouter);
 router.use(quoteRouter);
+router.use("/qr-scan", qrScansPublicRouter);
+router.use("/services", servicesPublicRouter);
 
 // Case studies: public reads + admin writes handled inside the router
 // (requireAdmin applied per-route inside caseStudies.ts)
@@ -42,5 +46,11 @@ router.use("/admin/discussions", requireAdmin, discussionsRouter);
 
 // Protected admin: projects
 router.use("/admin/projects", requireAdmin, projectsRouter);
+
+// Protected admin: services content management
+router.use("/admin/services", requireAdmin, servicesAdminRouter);
+
+// Protected admin: QR scan stats
+router.use("/admin/qr-scans", requireAdmin, qrScansAdminRouter);
 
 export default router;

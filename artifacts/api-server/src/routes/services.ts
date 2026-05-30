@@ -1,20 +1,19 @@
-import { Link } from "wouter";
-import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Router, type IRouter } from "express";
+import { requireAdmin } from "../middleware/auth";
+import { getServicesRepository, type ServiceDoc } from "../db";
+import { logger } from "../lib/logger";
+import type admin from "firebase-admin";
 
-interface Service {
-  id: string;
-  title: string;
-  tag: string;
-  desc: string;
-  bullets: string[];
-  mediaUrl: string;
-  mediaType: "image" | "video";
-  order: number;
+function tsToIso(ts: admin.firestore.Timestamp | undefined | null): string {
+  if (!ts) return new Date(0).toISOString();
+  return ts.toDate().toISOString();
 }
 
-const FALLBACK_SERVICES: Service[] = [
+function toApiService(doc: ServiceDoc) {
+  return { ...doc, updatedAt: tsToIso(doc.updatedAt) };
+}
+
+const SEED_SERVICES: Omit<ServiceDoc, "updatedAt">[] = [
   {
     id: "kitchen-remodeling",
     title: "Kitchen Remodeling",
@@ -117,114 +116,93 @@ const FALLBACK_SERVICES: Service[] = [
   },
 ];
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.55 } },
-};
-const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.08 } } };
+// ─── Public router ─────────────────────────────────────────────────────────────
 
-function ServiceMedia({ url, type, title }: { url: string; type: "image" | "video"; title: string }) {
-  if (type === "video") {
-    return (
-      <video
-        src={url}
-        autoPlay
-        muted
-        loop
-        playsInline
-        className="w-full h-full object-cover"
-      />
-    );
+export const servicesPublicRouter: IRouter = Router();
+
+// GET /api/services
+servicesPublicRouter.get("/", async (req, res): Promise<void> => {
+  try {
+    const repo = getServicesRepository();
+    const services = await repo.listServices();
+    res.json(services.map(toApiService));
+  } catch (error) {
+    logger.error({ error }, "Error fetching services");
+    res.status(500).json({ error: "Internal server error" });
   }
-  return <img src={url} alt={title} className="w-full h-full object-cover" />;
-}
+});
 
-export default function ServicesPage() {
-  const { data: fetchedServices } = useQuery<Service[]>({
-    queryKey: ["/api/services"],
-    queryFn: async () => {
-      const apiBase = import.meta.env.VITE_API_URL || "";
-      const res = await fetch(`${apiBase}/api/services`);
-      if (!res.ok) throw new Error("Failed to fetch services");
-      return res.json();
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+// ─── Admin router ──────────────────────────────────────────────────────────────
 
-  const services =
-    fetchedServices && fetchedServices.length > 0 ? fetchedServices : FALLBACK_SERVICES;
+export const servicesAdminRouter: IRouter = Router();
 
-  return (
-    <div>
-      {/* Header */}
-      <section className="bg-foreground py-24">
-        <div className="container mx-auto px-4 md:px-6 lg:px-8">
-          <motion.div variants={stagger} initial="hidden" animate="show">
-            <motion.p variants={fadeUp} className="text-accent font-semibold tracking-wider text-sm uppercase mb-3">What We Offer</motion.p>
-            <motion.h1 variants={fadeUp} className="font-display text-5xl md:text-6xl font-bold text-background mb-4">Our Services</motion.h1>
-            <motion.p variants={fadeUp} className="text-background/60 text-lg max-w-2xl">
-              From a single repair to a full remodel, Suvana brings the same level of professionalism and craftsmanship to every job.
-            </motion.p>
-          </motion.div>
-        </div>
-      </section>
+// GET /admin/services — same list for the admin UI
+servicesAdminRouter.get("/", async (req, res): Promise<void> => {
+  try {
+    const repo = getServicesRepository();
+    const services = await repo.listServices();
+    res.json(services.map(toApiService));
+  } catch (error) {
+    logger.error({ error }, "Error fetching services");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
-      {/* Services List */}
-      <section className="py-20 bg-background">
-        <div className="container mx-auto px-4 md:px-6 lg:px-8">
-          <div className="space-y-20">
-            {services.map((svc, i) => (
-              <motion.div
-                key={svc.id}
-                className="grid lg:grid-cols-2 gap-12 items-center"
-                variants={fadeUp}
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true, margin: "-60px" }}
-              >
-                <div className={i % 2 === 1 ? "lg:order-2" : ""}>
-                  <span className="text-accent text-xs font-semibold uppercase tracking-wider">{svc.tag}</span>
-                  <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mt-2 mb-4">{svc.title}</h2>
-                  <p className="text-muted-foreground leading-relaxed mb-6">{svc.desc}</p>
-                  <ul className="space-y-2 mb-8">
-                    {svc.bullets.map((b) => (
-                      <li key={b} className="flex items-center gap-2 text-sm text-foreground">
-                        <span className="h-1.5 w-1.5 rounded-full bg-accent flex-shrink-0" />
-                        {b}
-                      </li>
-                    ))}
-                  </ul>
-                  <Link
-                    href="/quote"
-                    className="inline-flex items-center gap-2 rounded-sm bg-foreground px-6 py-3 text-sm font-semibold text-background hover:bg-foreground/90 transition-colors"
-                  >
-                    Get a Quote
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </div>
-                <div className={`rounded-sm overflow-hidden aspect-[4/3] ${i % 2 === 1 ? "lg:order-1" : ""}`}>
-                  <ServiceMedia url={svc.mediaUrl} type={svc.mediaType} title={svc.title} />
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+// POST /admin/services/seed — upsert all default services
+servicesAdminRouter.post("/seed", async (req, res): Promise<void> => {
+  try {
+    const repo = getServicesRepository();
+    await Promise.all(
+      SEED_SERVICES.map(({ id, ...data }) => repo.upsertService(id, data))
+    );
+    res.json({ success: true, count: SEED_SERVICES.length });
+  } catch (error) {
+    logger.error({ error }, "Error seeding services");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
-      {/* CTA */}
-      <section className="py-20 bg-accent">
-        <div className="container mx-auto px-4 md:px-6 lg:px-8 text-center">
-          <h2 className="font-display text-4xl font-bold text-white mb-4">Don't See What You Need?</h2>
-          <p className="text-white/80 mb-8 max-w-lg mx-auto">We handle a wide variety of construction and maintenance work. Contact us to discuss your specific project.</p>
-          <Link
-            href="/contact"
-            className="inline-flex items-center gap-2 rounded-sm bg-white px-10 py-4 text-sm font-semibold text-foreground hover:bg-white/90 transition-colors"
-          >
-            Talk to Us
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      </section>
-    </div>
-  );
-}
+// PUT /admin/services/:id — update a single service
+servicesAdminRouter.put("/:id", async (req, res): Promise<void> => {
+  try {
+    const id = String(req.params["id"]).trim();
+    const { title, tag, desc, bullets, mediaUrl, mediaType, order } = req.body as {
+      title?: string;
+      tag?: string;
+      desc?: string;
+      bullets?: unknown;
+      mediaUrl?: string;
+      mediaType?: string;
+      order?: number;
+    };
+
+    if (
+      !title ||
+      !tag ||
+      !desc ||
+      !Array.isArray(bullets) ||
+      !mediaUrl ||
+      !["image", "video"].includes(mediaType ?? "")
+    ) {
+      res.status(400).json({
+        error: "title, tag, desc, bullets (array), mediaUrl, and mediaType (image|video) are required",
+      });
+      return;
+    }
+
+    const repo = getServicesRepository();
+    await repo.updateService(id, {
+      title,
+      tag,
+      desc,
+      bullets: bullets as string[],
+      mediaUrl,
+      mediaType: mediaType as "image" | "video",
+      ...(typeof order === "number" ? { order } : {}),
+    });
+    res.json({ success: true });
+  } catch (error) {
+    logger.error({ error }, "Error updating service");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});

@@ -461,6 +461,85 @@ export function getCaseStudiesRepository() {
   };
 }
 
+// ─── Services ─────────────────────────────────────────────────────────────────
+
+export interface ServiceDoc {
+  id: string;
+  title: string;
+  tag: string;
+  desc: string;
+  bullets: string[];
+  mediaUrl: string;
+  mediaType: "image" | "video";
+  order: number;
+  updatedAt: admin.firestore.Timestamp;
+}
+
+export function getServicesRepository() {
+  const col = db().collection("services");
+
+  return {
+    async listServices(): Promise<ServiceDoc[]> {
+      const docs = await col.orderBy("order", "asc").get();
+      return docs.docs.map((d) => toDoc<ServiceDoc>(d));
+    },
+
+    async upsertService(
+      id: string,
+      data: Omit<ServiceDoc, "id" | "updatedAt">
+    ): Promise<void> {
+      await col.doc(id).set(
+        stripUndefined({
+          ...data,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }) as admin.firestore.DocumentData,
+        { merge: true }
+      );
+    },
+
+    async updateService(
+      id: string,
+      data: Partial<Omit<ServiceDoc, "id" | "updatedAt">>
+    ): Promise<void> {
+      await col.doc(id).update(
+        stripUndefined({
+          ...data,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }) as admin.firestore.DocumentData
+      );
+    },
+  };
+}
+
+// ─── QR Scans ────────────────────────────────────────────────────────────────
+
+export interface QrScanDoc {
+  id: string;
+  count: number;
+  lastScannedAt: admin.firestore.Timestamp;
+}
+
+export function getQrScansRepository() {
+  const col = db().collection("qrScans");
+
+  return {
+    async recordScan(source: string): Promise<void> {
+      await col.doc(source).set(
+        {
+          count: admin.firestore.FieldValue.increment(1),
+          lastScannedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+    },
+
+    async listScans(): Promise<QrScanDoc[]> {
+      const docs = await col.orderBy("lastScannedAt", "desc").get();
+      return docs.docs.map((d) => toDoc<QrScanDoc>(d));
+    },
+  };
+}
+
 // ─── Media ────────────────────────────────────────────────────────────────────
 
 export function getMediaRepository() {
