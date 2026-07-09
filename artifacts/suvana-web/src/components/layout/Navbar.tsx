@@ -19,15 +19,19 @@ export function Navbar() {
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="container mx-auto px-4 md:px-6 lg:px-8">
         <div className="flex h-20 items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <img 
-              src="https://suvanaconstruction.com/logo.png" 
-              alt="Suvana Construction Logo" 
-              className="h-10 w-auto object-contain"
-              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+          <Link href="/" className="flex h-full items-center py-1">
+            <img
+              src="https://suvanaconstruction.com/logo.png"
+              alt="Suvana Construction Logo"
+              className="h-full w-auto object-contain"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                const fallback = e.currentTarget.nextElementSibling as HTMLElement | null;
+                if (fallback) fallback.style.display = 'flex';
+              }}
             />
-            <span className="font-display text-lg font-bold tracking-tight text-foreground leading-tight">
-              Suvana<br /><span className="text-accent text-xs font-semibold tracking-widest uppercase">Constructions</span>
+            <span className="font-display text-lg font-bold tracking-tight text-foreground leading-tight hidden items-center gap-2">
+              Suvana<span className="text-accent text-xs font-semibold tracking-widest uppercase">Constructions</span>
             </span>
           </Link>
 

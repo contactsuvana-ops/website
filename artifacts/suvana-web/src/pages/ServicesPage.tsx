@@ -1,7 +1,13 @@
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+
+interface MediaItem {
+  url: string;
+  type: "image" | "video";
+}
 
 interface Service {
   id: string;
@@ -11,111 +17,15 @@ interface Service {
   bullets: string[];
   mediaUrl: string;
   mediaType: "image" | "video";
+  mediaItems?: MediaItem[];
   order: number;
 }
 
-const FALLBACK_SERVICES: Service[] = [
-  {
-    id: "kitchen-remodeling",
-    title: "Kitchen Remodeling",
-    tag: "Full Kitchen Transformations",
-    desc: "The kitchen is the heart of your home — and it should look like it. We handle complete kitchen remodels from layout changes and custom cabinetry to countertops, backsplash, lighting, and plumbing. We work with your style and budget to deliver a kitchen you'll love for years.",
-    bullets: ["Custom cabinetry & layout design", "Countertop installation (granite, quartz, butcher block)", "Backsplash tile work", "Appliance hookups", "Lighting & electrical upgrades"],
-    mediaUrl: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&q=80",
-    mediaType: "image",
-    order: 0,
-  },
-  {
-    id: "drywall",
-    title: "Drywall",
-    tag: "Installation & Repair",
-    desc: "Whether you need new drywall hung in a freshly framed space or seamless repairs on existing walls, our crew delivers a finish that paints up perfectly. We handle everything from small patches to full room installs with precision taping, mudding, and sanding.",
-    bullets: ["New drywall installation", "Patch & repair (holes, water damage, cracks)", "Tape, mud & sand finish", "Texture matching", "Ceiling drywall"],
-    mediaUrl: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=80",
-    mediaType: "image",
-    order: 1,
-  },
-  {
-    id: "plumbing",
-    title: "Plumbing",
-    tag: "From Drips to Full Installs",
-    desc: "Pipe leaks, clogged drains, fixture replacements, water heater installs — our licensed plumbers respond quickly and fix it right the first time. We work on residential and light commercial plumbing with transparency on pricing before any work begins.",
-    bullets: ["Pipe repair & replacement", "Fixture installation (sinks, toilets, showers)", "Water heater service & install", "Drain cleaning", "Bathroom & kitchen plumbing"],
-    mediaUrl: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=800&q=80",
-    mediaType: "image",
-    order: 2,
-  },
-  {
-    id: "electrical",
-    title: "Electrical",
-    tag: "Safe & Code-Compliant",
-    desc: "Our licensed electricians handle everything from outlet installation to full panel upgrades. All work is code-compliant and inspected, giving you peace of mind that your home's electrical system is safe, modern, and reliable.",
-    bullets: ["Panel upgrades & replacements", "Outlet & switch installation", "Lighting fixtures & ceiling fans", "EV charger installation", "Whole-home rewiring"],
-    mediaUrl: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=800&q=80",
-    mediaType: "image",
-    order: 3,
-  },
-  {
-    id: "flooring",
-    title: "Flooring",
-    tag: "Every Surface, Done Right",
-    desc: "From rustic hardwood to modern luxury vinyl, we install flooring that completes a room. We handle subfloor repair and prep, installation, and finishing with the care that protects your investment for decades.",
-    bullets: ["Hardwood installation & refinishing", "Tile & stone (kitchen, bath, entry)", "Luxury vinyl plank (LVP)", "Carpet installation", "Subfloor leveling & repair"],
-    mediaUrl: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80",
-    mediaType: "image",
-    order: 4,
-  },
-  {
-    id: "fireplace",
-    title: "Fireplace",
-    tag: "Installation & Surround Work",
-    desc: "A fireplace transforms any room. We install gas, electric, and wood-burning fireplaces and build custom surrounds — from sleek modern stone to classic craftsman tile — that become the focal point of your living space.",
-    bullets: ["Gas & electric fireplace installation", "Wood-burning fireplace builds", "Custom tile & stone surrounds", "Mantel installation", "Fireplace refacing & updates"],
-    mediaUrl: "https://firebasestorage.googleapis.com/v0/b/suvana-97279.firebasestorage.app/o/website_media%2Ffireplace.mp4?alt=media&token=4608bd7a-198f-4d7a-ac20-9cfd8a7404d8",
-    mediaType: "video",
-    order: 5,
-  },
-  {
-    id: "basement",
-    title: "Basement",
-    tag: "Finishing & Conversion",
-    desc: "Your unfinished basement is untapped square footage. We convert raw basement space into livable, comfortable rooms — home offices, gyms, playrooms, in-law suites, or entertainment spaces — with full framing, insulation, drywall, flooring, and electrical.",
-    bullets: ["Full basement finishing", "Framing & insulation", "Egress window installation", "Waterproofing coordination", "In-law suite & rental unit conversions"],
-    mediaUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80",
-    mediaType: "image",
-    order: 6,
-  },
-  {
-    id: "painting",
-    title: "Painting",
-    tag: "Interior & Exterior",
-    desc: "Professional painting transforms a space more than almost anything else. Our painters are meticulous — proper surface preparation, quality primer, clean lines, and a durable finish that looks great and holds up over time. Residential and commercial clients welcome.",
-    bullets: ["Interior painting (walls, ceilings, trim)", "Exterior painting & staining", "Cabinet refinishing & painting", "Commercial painting", "Deck & fence staining"],
-    mediaUrl: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=800&q=80",
-    mediaType: "image",
-    order: 7,
-  },
-  {
-    id: "remodeling",
-    title: "Remodeling",
-    tag: "Full-Room Renovations",
-    desc: "Beyond kitchens, we handle bathrooms, living rooms, additions, and whole-home renovations. Bring us your vision — a layout change, an aging space that needs refreshing, or a new addition — and we'll make it happen with craftsmanship that lasts.",
-    bullets: ["Bathroom remodels", "Room additions", "Open floor plan conversions", "Whole-home renovations", "Custom built-ins & millwork"],
-    mediaUrl: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&q=80",
-    mediaType: "image",
-    order: 8,
-  },
-  {
-    id: "handyman",
-    title: "Handyman",
-    tag: "Repairs & Maintenance",
-    desc: "Not every job needs a full crew — but every job deserves quality work. Our handyman team handles the everyday repairs, fixes, and small improvements that keep your home or business running at its best. Fast response, reliable service, fair pricing.",
-    bullets: ["Door & window repairs", "Drywall patching & touch-ups", "Fixture installation", "Caulking & weatherstripping", "General home maintenance"],
-    mediaUrl: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=80",
-    mediaType: "image",
-    order: 9,
-  },
-];
+function resolveMediaItems(svc: Service): MediaItem[] {
+  if (svc.mediaItems && svc.mediaItems.length > 0) return svc.mediaItems;
+  return [{ url: svc.mediaUrl, type: svc.mediaType }];
+}
+
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -123,24 +33,61 @@ const fadeUp = {
 };
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.08 } } };
 
-function ServiceMedia({ url, type, title }: { url: string; type: "image" | "video"; title: string }) {
-  if (type === "video") {
-    return (
-      <video
-        src={url}
-        autoPlay
-        muted
-        loop
-        playsInline
-        className="w-full h-full object-cover"
-      />
-    );
-  }
-  return <img src={url} alt={title} className="w-full h-full object-cover" />;
+// ─── MediaSlideshow ────────────────────────────────────────────────────────────
+
+function MediaSlideshow({ items, title }: { items: MediaItem[]; title: string }) {
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    if (items.length <= 1) return;
+    const timer = setInterval(() => setIdx((i) => (i + 1) % items.length), 4500);
+    return () => clearInterval(timer);
+  }, [items.length]);
+
+  const current = items[Math.min(idx, items.length - 1)];
+
+  return (
+    <div className="relative w-full h-full overflow-hidden">
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={idx}
+          className="absolute inset-0"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.7 }}
+        >
+          {current.type === "video" ? (
+            <video
+              src={current.url}
+              autoPlay muted loop playsInline
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <img src={current.url} alt={title} className="w-full h-full object-cover" />
+          )}
+        </motion.div>
+      </AnimatePresence>
+
+      {items.length > 1 && (
+        <div className="absolute bottom-3 inset-x-0 flex justify-center gap-1.5 z-10">
+          {items.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setIdx(i)}
+              className={`w-2 h-2 rounded-full transition-all ${
+                i === idx ? "bg-white scale-110" : "bg-white/40 hover:bg-white/70"
+              }`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function ServicesPage() {
-  const { data: fetchedServices } = useQuery<Service[]>({
+  const { data: fetchedServices, isLoading: servicesLoading } = useQuery<Service[]>({
     queryKey: ["/api/services"],
     queryFn: async () => {
       const apiBase = import.meta.env.VITE_API_URL || "";
@@ -151,8 +98,7 @@ export default function ServicesPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const services =
-    fetchedServices && fetchedServices.length > 0 ? fetchedServices : FALLBACK_SERVICES;
+  const services = fetchedServices ?? [];
 
   return (
     <div>
@@ -173,40 +119,61 @@ export default function ServicesPage() {
       <section className="py-20 bg-background">
         <div className="container mx-auto px-4 md:px-6 lg:px-8">
           <div className="space-y-20">
-            {services.map((svc, i) => (
-              <motion.div
-                key={svc.id}
-                className="grid lg:grid-cols-2 gap-12 items-center"
-                variants={fadeUp}
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true, margin: "-60px" }}
-              >
-                <div className={i % 2 === 1 ? "lg:order-2" : ""}>
-                  <span className="text-accent text-xs font-semibold uppercase tracking-wider">{svc.tag}</span>
-                  <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mt-2 mb-4">{svc.title}</h2>
-                  <p className="text-muted-foreground leading-relaxed mb-6">{svc.desc}</p>
-                  <ul className="space-y-2 mb-8">
-                    {svc.bullets.map((b) => (
-                      <li key={b} className="flex items-center gap-2 text-sm text-foreground">
-                        <span className="h-1.5 w-1.5 rounded-full bg-accent flex-shrink-0" />
-                        {b}
-                      </li>
-                    ))}
-                  </ul>
-                  <Link
-                    href="/quote"
-                    className="inline-flex items-center gap-2 rounded-sm bg-foreground px-6 py-3 text-sm font-semibold text-background hover:bg-foreground/90 transition-colors"
+            {servicesLoading
+              ? Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="grid lg:grid-cols-2 gap-12 items-center animate-pulse">
+                    <div className={i % 2 === 1 ? "lg:order-2 space-y-4" : "space-y-4"}>
+                      <div className="h-3 w-24 bg-muted rounded" />
+                      <div className="h-8 w-56 bg-muted rounded" />
+                      <div className="space-y-2">
+                        <div className="h-3 w-full bg-muted rounded" />
+                        <div className="h-3 w-5/6 bg-muted rounded" />
+                        <div className="h-3 w-4/6 bg-muted rounded" />
+                      </div>
+                      <div className="space-y-2 pt-2">
+                        {Array.from({ length: 4 }).map((_, j) => (
+                          <div key={j} className="h-3 w-48 bg-muted rounded" />
+                        ))}
+                      </div>
+                      <div className="h-10 w-32 bg-muted rounded" />
+                    </div>
+                    <div className={`rounded-sm aspect-[4/3] bg-muted ${i % 2 === 1 ? "lg:order-1" : ""}`} />
+                  </div>
+                ))
+              : services.map((svc, i) => (
+                  <motion.div
+                    key={svc.id}
+                    className="grid lg:grid-cols-2 gap-12 items-center"
+                    variants={fadeUp}
+                    initial="hidden"
+                    whileInView="show"
+                    viewport={{ once: true, margin: "-60px" }}
                   >
-                    Get a Quote
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </div>
-                <div className={`rounded-sm overflow-hidden aspect-[4/3] ${i % 2 === 1 ? "lg:order-1" : ""}`}>
-                  <ServiceMedia url={svc.mediaUrl} type={svc.mediaType} title={svc.title} />
-                </div>
-              </motion.div>
-            ))}
+                    <div className={i % 2 === 1 ? "lg:order-2" : ""}>
+                      <span className="text-accent text-xs font-semibold uppercase tracking-wider">{svc.tag}</span>
+                      <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mt-2 mb-4">{svc.title}</h2>
+                      <p className="text-muted-foreground leading-relaxed mb-6">{svc.desc}</p>
+                      <ul className="space-y-2 mb-8">
+                        {svc.bullets.map((b) => (
+                          <li key={b} className="flex items-center gap-2 text-sm text-foreground">
+                            <span className="h-1.5 w-1.5 rounded-full bg-accent flex-shrink-0" />
+                            {b}
+                          </li>
+                        ))}
+                      </ul>
+                      <Link
+                        href="/quote"
+                        className="inline-flex items-center gap-2 rounded-sm bg-foreground px-6 py-3 text-sm font-semibold text-background hover:bg-foreground/90 transition-colors"
+                      >
+                        Get a Quote
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    </div>
+                    <div className={`rounded-sm overflow-hidden aspect-[4/3] ${i % 2 === 1 ? "lg:order-1" : ""}`}>
+                      <MediaSlideshow items={resolveMediaItems(svc)} title={svc.title} />
+                    </div>
+                  </motion.div>
+                ))}
           </div>
         </div>
       </section>

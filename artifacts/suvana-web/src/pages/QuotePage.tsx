@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion } from "framer-motion";
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import { useSubmitQuote } from "@workspace/api-client-react";
 import { CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
 
@@ -18,6 +19,7 @@ const schema = z.object({
   timeline: z.enum(["asap","1-3-months","3-6-months","6-12-months","flexible"]).optional(),
   message: z.string().min(10, "Please describe your project (at least 10 characters)"),
   honeypot: z.string().optional(),
+  recaptchaToken: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -61,19 +63,44 @@ const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.09 } } };
 export default function QuotePage() {
   const [submitted, setSubmitted] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const { executeRecaptcha } = useGoogleReCaptcha();
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+    nameRef.current?.focus();
+  }, []);
+
+  const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
 
+  const { ref: nameFormRef, ...nameRest } = register("name");
+
   const mutation = useSubmitQuote();
 
-  const onSubmit = (data: FormData) => {
-    setServerError(null);
-    mutation.mutate({ data }, {
-      onSuccess: () => setSubmitted(true),
-      onError: () => setServerError("Something went wrong. Please try again or call us directly."),
-    });
+  const onSubmit = async (data: FormData) => {
+    if (!executeRecaptcha) {
+      setServerError("reCAPTCHA is not available. Please refresh and try again.");
+      return;
+    }
+
+    try {
+      const token = await executeRecaptcha("quote_submission");
+      if (!token) {
+        setServerError("reCAPTCHA verification failed. Please try again.");
+        return;
+      }
+
+      const dataWithToken = { ...data, recaptchaToken: token };
+      setServerError(null);
+      mutation.mutate({ data: dataWithToken }, {
+        onSuccess: () => setSubmitted(true),
+        onError: () => setServerError("Something went wrong. Please try again or call us directly."),
+      });
+    } catch (error) {
+      setServerError("reCAPTCHA verification failed. Please try again.");
+    }
   };
 
   return (
@@ -121,6 +148,9 @@ export default function QuotePage() {
                   <input id="hp-quote" type="text" tabIndex={-1} autoComplete="off" {...register("honeypot")} />
                 </div>
 
+                {/* reCAPTCHA Token (hidden) */}
+                <input type="hidden" {...register("recaptchaToken")} />
+
                 {/* Contact Info */}
                 <motion.div variants={fadeUp}>
                   <h3 className="font-semibold text-foreground mb-4 text-lg">Contact Information</h3>
@@ -128,7 +158,11 @@ export default function QuotePage() {
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-1.5">Full Name <span className="text-accent">*</span></label>
                       <input
-                        {...register("name")}
+                        {...nameRest}
+                        ref={(el) => {
+                          nameFormRef(el);
+                          nameRef.current = el;
+                        }}
                         className="w-full rounded-sm border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent"
                         placeholder="Your full name"
                       />

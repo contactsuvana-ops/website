@@ -1,0 +1,516 @@
+import { useState, useRef } from "react";
+import { useLocation } from "wouter";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  useGetSubmissions,
+  useGetComments,
+  useAddComment,
+  useDeleteComment,
+  getGetSubmissionsQueryKey,
+  getGetCommentsQueryKey,
+} from "@workspace/api-client-react";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { getAdminToken } from "@/hooks/use-admin-auth";
+import {
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  MessageSquare,
+  Send,
+  Trash2,
+  Lock,
+  Globe,
+  FileText,
+} from "lucide-react";
+
+type FilterType = "all" | "contact" | "quote";
+
+const PROJECT_LABELS: Record<string, string> = {
+  "kitchen-remodeling": "Kitchen Remodeling",
+  drywall: "Drywall",
+  plumbing: "Plumbing",
+  electrical: "Electrical",
+  flooring: "Flooring",
+  fireplace: "Fireplace",
+  basement: "Basement",
+  painting: "Painting",
+  remodeling: "Remodeling",
+  handyman: "Handyman",
+};
+
+const BUDGET_LABELS: Record<string, string> = {
+  "under-5k": "< $5K",
+  "5k-15k": "$5K–$15K",
+  "15k-50k": "$15K–$50K",
+  "50k-100k": "$50K–$100K",
+  "over-100k": "> $100K",
+  "not-sure": "Not sure",
+};
+
+const TIMELINE_LABELS: Record<string, string> = {
+  asap: "ASAP",
+  "1-3-months": "1–3 months",
+  "3-6-months": "3–6 months",
+  "6-12-months": "6–12 months",
+  flexible: "Flexible",
+};
+
+const apiBase = import.meta.env.VITE_API_URL || "";
+
+async function adminFetch(path: string, options: RequestInit = {}): Promise<Response> {
+  const token = getAdminToken();
+  return fetch(`${apiBase}/api${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers as Record<string, string> | undefined),
+    },
+  });
+}
+
+// ─── CommentsPanel ─────────────────────────────────────────────────────────────
+
+function CommentsPanel({ submissionId }: { submissionId: number }) {
+  const qc = useQueryClient();
+  const { data: comments, isLoading } = useGetComments(submissionId, {
+    query: { queryKey: getGetCommentsQueryKey(submissionId) },
+  });
+  const addMutation = useAddComment();
+  const deleteMutation = useDeleteComment();
+
+  const [text, setText] = useState("");
+  const [isShared, setIsShared] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  function handleAdd() {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    addMutation.mutate(
+      { id: submissionId, data: { content: trimmed, isShared } },
+      {
+        onSuccess: () => {
+          setText("");
+          setIsShared(false);
+          qc.invalidateQueries({ queryKey: getGetCommentsQueryKey(submissionId) });
+        },
+      }
+    );
+  }
+
+  function handleDelete(commentId: number) {
+    deleteMutation.mutate(
+      { id: submissionId, commentId },
+      {
+        onSuccess: () => {
+          qc.invalidateQueries({ queryKey: getGetCommentsQueryKey(submissionId) });
+        },
+      }
+    );
+  }
+
+  return (
+    <div className="mt-5 border-t border-border pt-5">
+      <div className="flex items-center gap-2 mb-3">
+        <MessageSquare className="h-4 w-4 text-muted-foreground" />
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Internal Notes {comments?.length ? `(${comments.length})` : ""}
+        </span>
+      </div>
+
+      {isLoading ? (
+        <p className="text-xs text-muted-foreground py-2">Loading notes…</p>
+      ) : comments?.length === 0 ? (
+        <p className="text-xs text-muted-foreground py-2 italic">No notes yet.</p>
+      ) : (
+        <ul className="space-y-2 mb-4">
+          {comments?.map((c) => (
+            <li
+              key={c.id}
+              className="group flex items-start gap-3 rounded-sm bg-muted/40 border border-border px-4 py-3"
+            >
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-foreground whitespace-pre-wrap break-words">{c.content}</p>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <span className="text-[11px] text-muted-foreground">
+                    {new Date(c.createdAt).toLocaleString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                  {c.isShared ? (
+                    <span className="inline-flex items-center gap-0.5 text-[11px] text-green-600 font-medium">
+                      <Globe className="h-3 w-3" /> Shared
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground">
+                      <Lock className="h-3 w-3" /> Internal
+                    </span>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={() => handleDelete(c.id)}
+                disabled={deleteMutation.isPending}
+                className="opacity-0 group-hover:opacity-100 transition-opacity rounded-sm p-1 hover:bg-red-50 hover:text-red-600 text-muted-foreground"
+                title="Delete note"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="rounded-sm border border-border bg-background overflow-hidden">
+        <textarea
+          ref={textareaRef}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleAdd();
+          }}
+          placeholder="Add an internal note… (⌘↵ to submit)"
+          rows={2}
+          className="w-full px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none resize-none"
+        />
+        <div className="flex items-center justify-between px-4 py-2 border-t border-border bg-muted/20">
+          <button
+            onClick={() => setIsShared((v) => !v)}
+            className={`flex items-center gap-1.5 text-xs font-medium rounded-sm px-2.5 py-1 transition-colors ${
+              isShared
+                ? "bg-green-100 text-green-700 border border-green-200"
+                : "bg-muted text-muted-foreground border border-border"
+            }`}
+          >
+            {isShared ? <Globe className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
+            {isShared ? "Shared with customer" : "Internal only"}
+          </button>
+          <button
+            onClick={handleAdd}
+            disabled={!text.trim() || addMutation.isPending}
+            className="flex items-center gap-1.5 bg-foreground text-background text-xs font-semibold px-4 py-1.5 rounded-sm hover:bg-foreground/80 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <Send className="h-3.5 w-3.5" />
+            Add Note
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── ProspectRow ──────────────────────────────────────────────────────────────
+
+function ProspectRow({
+  s,
+}: {
+  s: {
+    id: number;
+    type: string;
+    name: string;
+    email: string;
+    phone: string;
+    projectType?: string | null;
+    location?: string | null;
+    budget?: string | null;
+    timeline?: string | null;
+    message: string;
+    createdAt: string | Date;
+  };
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [, navigate] = useLocation();
+  const qc = useQueryClient();
+
+  const convertMutation = useMutation({
+    mutationFn: async () => {
+      const projectLabel = s.projectType ? (PROJECT_LABELS[s.projectType] ?? s.projectType) : null;
+      const title = projectLabel ? `${projectLabel} — ${s.name}` : `Estimate — ${s.name}`;
+
+      // 1. Create the estimate
+      const estimateRes = await adminFetch("/admin/estimates", {
+        method: "POST",
+        body: JSON.stringify({
+          title,
+          customerName: s.name,
+          customerEmail: s.email,
+          customerPhone: s.phone || undefined,
+          projectAddress: s.location || undefined,
+          description: s.message || undefined,
+          status: "draft",
+          taxRate: 0,
+          markupPct: 20,
+          depositPct: 30,
+        }),
+      });
+      if (!estimateRes.ok) {
+        const data = await estimateRes.json().catch(() => ({}));
+        throw new Error((data as { error?: string }).error ?? "Failed to create estimate");
+      }
+      const estimate = await estimateRes.json() as { id: string };
+
+      // 2. Carry over submission comments to estimate (fire-and-forget failures)
+      try {
+        const commentsRes = await adminFetch(`/admin/submissions/${s.id}/comments`);
+        if (commentsRes.ok) {
+          const comments = await commentsRes.json() as { content: string }[];
+          await Promise.all(
+            comments.map((c) =>
+              adminFetch(`/admin/estimates/${estimate.id}/comments`, {
+                method: "POST",
+                body: JSON.stringify({ content: c.content, source: "carried_over" }),
+              })
+            )
+          );
+        }
+      } catch { /* non-fatal */ }
+
+      // 3. Mark submission as converted
+      await adminFetch(`/admin/submissions/${s.id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "converted" }),
+      });
+
+      return estimate;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: getGetSubmissionsQueryKey({ type: "all", page: 1, limit: 20 }) });
+      navigate(`/admin/estimates/${data.id}`);
+    },
+  });
+
+  return (
+    <>
+      <tr
+        className="hover:bg-muted/20 transition-colors cursor-pointer"
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <td className="px-5 py-4 text-muted-foreground font-mono text-xs">#{s.id}</td>
+        <td className="px-5 py-4">
+          <span
+            className={`inline-flex rounded-sm px-2.5 py-1 text-xs font-semibold ${
+              s.type === "quote" ? "bg-accent/15 text-accent" : "bg-blue-50 text-blue-700"
+            }`}
+          >
+            {s.type}
+          </span>
+        </td>
+        <td className="px-5 py-4 font-medium text-foreground">{s.name}</td>
+        <td className="px-5 py-4 text-muted-foreground">
+          <a
+            href={`mailto:${s.email}`}
+            className="hover:text-accent transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {s.email}
+          </a>
+        </td>
+        <td className="px-5 py-4 text-muted-foreground">{s.phone}</td>
+        <td className="px-5 py-4 text-muted-foreground">
+          {s.projectType ? PROJECT_LABELS[s.projectType] ?? s.projectType : "—"}
+        </td>
+        <td className="px-5 py-4 text-muted-foreground">
+          {s.budget ? BUDGET_LABELS[s.budget] ?? s.budget : "—"}
+        </td>
+        <td className="px-5 py-4 text-muted-foreground text-xs">
+          {new Date(s.createdAt).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })}
+        </td>
+        <td className="px-5 py-4 text-muted-foreground">
+          {expanded ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )}
+        </td>
+      </tr>
+
+      <AnimatePresence>
+        {expanded && (
+          <tr>
+            <td colSpan={9} className="p-0">
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.22 }}
+                className="overflow-hidden"
+              >
+                <div className="px-6 py-5 bg-muted/10 border-b border-border">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+                    {s.location && (
+                      <div>
+                        <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-0.5">Location</p>
+                        <p className="text-sm text-foreground">{s.location}</p>
+                      </div>
+                    )}
+                    {s.timeline && (
+                      <div>
+                        <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-0.5">Timeline</p>
+                        <p className="text-sm text-foreground">{TIMELINE_LABELS[s.timeline] ?? s.timeline}</p>
+                      </div>
+                    )}
+                    {s.budget && (
+                      <div>
+                        <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-0.5">Budget</p>
+                        <p className="text-sm text-foreground">{BUDGET_LABELS[s.budget] ?? s.budget}</p>
+                      </div>
+                    )}
+                    {s.projectType && (
+                      <div>
+                        <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-0.5">Service</p>
+                        <p className="text-sm text-foreground">{PROJECT_LABELS[s.projectType] ?? s.projectType}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mb-1">
+                    <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-1.5">Message</p>
+                    <div className="rounded-sm border border-border bg-background px-4 py-3">
+                      <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{s.message}</p>
+                    </div>
+                  </div>
+
+                  {s.type === "quote" && (
+                    <div className="mt-4 pt-4 border-t border-border flex items-center gap-3">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); convertMutation.mutate(); }}
+                        disabled={convertMutation.isPending}
+                        className="flex items-center gap-2 bg-foreground text-background text-sm font-semibold px-4 py-2 rounded-sm hover:bg-foreground/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <FileText className="h-4 w-4" />
+                        {convertMutation.isPending ? "Creating…" : "Convert to Estimate"}
+                      </button>
+                      {convertMutation.isError && (
+                        <p className="text-xs text-red-600">{(convertMutation.error as Error).message}</p>
+                      )}
+                    </div>
+                  )}
+
+                  <CommentsPanel submissionId={s.id} />
+                </div>
+              </motion.div>
+            </td>
+          </tr>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
+// ─── ProspectsPage ────────────────────────────────────────────────────────────
+
+export default function ProspectsPage() {
+  const [filter, setFilter] = useState<FilterType>("all");
+  const [page, setPage] = useState(1);
+  const limit = 15;
+
+  const params = { type: filter, page, limit };
+
+  const { data: submissions, isLoading } = useGetSubmissions(params, {
+    query: { queryKey: getGetSubmissionsQueryKey(params) },
+  });
+
+  const totalPages = submissions ? Math.ceil(submissions.total / limit) : 1;
+
+  return (
+    <div className="p-8">
+      <div className="mb-8">
+        <h1 className="font-display text-2xl font-bold text-foreground">Prospects</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Contacts and quote requests from your website</p>
+      </div>
+
+      {/* Filter */}
+      <div className="flex items-center gap-3 mb-6">
+        <Filter className="h-4 w-4 text-muted-foreground" />
+        <span className="text-sm font-medium text-foreground">Filter:</span>
+        {(["all", "contact", "quote"] as FilterType[]).map((f) => (
+          <button
+            key={f}
+            onClick={() => {
+              setFilter(f);
+              setPage(1);
+            }}
+            className={`rounded-sm px-4 py-1.5 text-sm font-medium capitalize transition-colors ${
+              filter === f
+                ? "bg-foreground text-background"
+                : "bg-background border border-border text-foreground hover:bg-muted/50"
+            }`}
+          >
+            {f}
+          </button>
+        ))}
+        <span className="ml-auto text-xs text-muted-foreground">Click any row to expand</span>
+      </div>
+
+      {/* Table */}
+      <div className="bg-background rounded-sm border border-border overflow-hidden">
+        {isLoading ? (
+          <div className="py-24 text-center text-muted-foreground text-sm">Loading prospects…</div>
+        ) : !submissions?.submissions.length ? (
+          <div className="py-24 text-center text-muted-foreground text-sm">No prospects found.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 border-b border-border">
+                <tr>
+                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">ID</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Type</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Phone</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Project</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Budget</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date</th>
+                  <th className="px-5 py-3 w-8" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {submissions.submissions.map((s) => (
+                  <ProspectRow key={s.id} s={s} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {submissions && submissions.total > limit && (
+          <div className="border-t border-border px-5 py-4 flex items-center justify-between text-sm text-muted-foreground">
+            <span>
+              {(page - 1) * limit + 1}–{Math.min(page * limit, submissions.total)} of {submissions.total} prospects
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="rounded-sm border border-border p-1.5 hover:bg-muted/50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="text-foreground font-medium">
+                {page} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="rounded-sm border border-border p-1.5 hover:bg-muted/50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

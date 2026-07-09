@@ -122,6 +122,6 @@ See [FIRESTORE_SETUP.md](./FIRESTORE_SETUP.md) for comprehensive configuration a
 
 ## Services Covered
 
-General Construction, Handyman Services, Remodeling & Renovation, Roofing, Painting, Flooring, Electrical, Plumbing, Landscaping
+General Construction, Handyman Services, Remodeling & Renovation, Painting, Flooring, Electrical, Plumbing
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.

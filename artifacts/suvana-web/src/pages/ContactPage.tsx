@@ -149,9 +149,9 @@ export default function ContactPage() {
                 <h3 className="font-display text-2xl font-bold text-foreground mb-6">Contact Information</h3>
               </motion.div>
               {[
-                { icon: Phone, label: "Phone", value: "(800) 555-0100", href: "tel:8005550100" },
+                { icon: Phone, label: "Phone", value: "(302) 844-8097", href: "tel:3028448097" },
                 { icon: Mail, label: "Email", value: "contactsuvana@gmail.com", href: "mailto:contactsuvana@gmail.com" },
-                { icon: MapPin, label: "Service Area", value: "Greater Metro Area — contact us to confirm coverage" },
+                { icon: MapPin, label: "Service Area", value: "New Castle, DE— contact us to confirm coverage" },
                 { icon: Clock, label: "Hours", value: "Mon–Fri: 7am – 6pm\nSat: 8am – 4pm\nSun: Emergency only" },
               ].map(({ icon: Icon, label, value, href }) => (
                 <motion.div key={label} variants={fadeUp} className="flex gap-4">

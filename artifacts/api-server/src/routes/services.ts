@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { requireAdmin } from "../middleware/auth";
-import { getServicesRepository, type ServiceDoc } from "../db";
+import { getServicesRepository, type ServiceDoc, type ServiceMediaItem } from "../db";
 import { logger } from "../lib/logger";
 import type admin from "firebase-admin";
 
@@ -9,8 +9,13 @@ function tsToIso(ts: admin.firestore.Timestamp | undefined | null): string {
   return ts.toDate().toISOString();
 }
 
+function resolveMediaItems(doc: ServiceDoc): ServiceMediaItem[] {
+  if (doc.mediaItems && doc.mediaItems.length > 0) return doc.mediaItems;
+  return [{ url: doc.mediaUrl, type: doc.mediaType }];
+}
+
 function toApiService(doc: ServiceDoc) {
-  return { ...doc, updatedAt: tsToIso(doc.updatedAt) };
+  return { ...doc, updatedAt: tsToIso(doc.updatedAt), mediaItems: resolveMediaItems(doc) };
 }
 
 const SEED_SERVICES: Omit<ServiceDoc, "updatedAt">[] = [
@@ -166,38 +171,41 @@ servicesAdminRouter.post("/seed", async (req, res): Promise<void> => {
 servicesAdminRouter.put("/:id", async (req, res): Promise<void> => {
   try {
     const id = String(req.params["id"]).trim();
-    const { title, tag, desc, bullets, mediaUrl, mediaType, order } = req.body as {
+    const { title, tag, desc, bullets, mediaItems, order } = req.body as {
       title?: string;
       tag?: string;
       desc?: string;
       bullets?: unknown;
-      mediaUrl?: string;
-      mediaType?: string;
+      mediaItems?: unknown;
       order?: number;
     };
 
-    if (
-      !title ||
-      !tag ||
-      !desc ||
-      !Array.isArray(bullets) ||
-      !mediaUrl ||
-      !["image", "video"].includes(mediaType ?? "")
-    ) {
-      res.status(400).json({
-        error: "title, tag, desc, bullets (array), mediaUrl, and mediaType (image|video) are required",
-      });
+    if (!title || !tag || !desc || !Array.isArray(bullets)) {
+      res.status(400).json({ error: "title, tag, desc, and bullets (array) are required" });
       return;
     }
 
+    if (
+      !Array.isArray(mediaItems) ||
+      mediaItems.length === 0 ||
+      !(mediaItems as { url?: unknown; type?: unknown }[]).every(
+        (m) => typeof m.url === "string" && m.url && ["image", "video"].includes(String(m.type))
+      )
+    ) {
+      res.status(400).json({ error: "mediaItems must be a non-empty array of {url, type}" });
+      return;
+    }
+
+    const items = (mediaItems as { url: string; type: "image" | "video" }[]);
     const repo = getServicesRepository();
     await repo.updateService(id, {
       title,
       tag,
       desc,
       bullets: bullets as string[],
-      mediaUrl,
-      mediaType: mediaType as "image" | "video",
+      mediaUrl: items[0].url,
+      mediaType: items[0].type,
+      mediaItems: items,
       ...(typeof order === "number" ? { order } : {}),
     });
     res.json({ success: true });

@@ -46,3 +46,7 @@ env:
     value: njbc ojti jgfb hvfk
     availability:
       - RUNTIME
+  - variable: SITE_URL
+    value: https://suvana-97279.web.app
+    availability:
+      - RUNTIME

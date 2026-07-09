@@ -30,6 +30,7 @@ router.get("/", async (req, res): Promise<void> => {
       type: type ?? "all",
       page,
       limit,
+      excludeConverted: true,
     });
 
     res.json({ submissions: items.map(toApiSubmission), total, page, limit });

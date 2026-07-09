@@ -1,15 +1,30 @@
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Phone, Shield, Award, Clock, CheckCircle } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
-const SERVICES = [
-  { title: "Kitchen Remodeling", desc: "Complete kitchen transformations — custom cabinetry, countertops, layout redesign, and modern finishes that make the heart of your home shine.", img: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600&q=80" },
-  { title: "Flooring", desc: "Hardwood, tile, vinyl plank, and carpet installed with precision. We handle subfloor prep and finishing so every surface lasts for decades.", img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80" },
-  { title: "Painting", desc: "Interior and exterior painting for residential and commercial properties. Meticulous prep, clean lines, and a finish that holds up.", img: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=600&q=80" },
-  { title: "Electrical", desc: "Licensed electricians for panel upgrades, outlet installs, lighting fixtures, and everything in between — all code-compliant and inspected.", img: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&q=80" },
-  { title: "Plumbing", desc: "From leaky pipes to full fixture installs, our licensed plumbers fix it right the first time. Fast response, residential and commercial.", img: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=600&q=80" },
-  { title: "Basement", desc: "Transform your unfinished basement into a functional living space. Framing, insulation, drywall, flooring — we do it all.", img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80" },
-];
+interface MediaItem {
+  url: string;
+  type: "image" | "video";
+}
+
+interface Service {
+  id: string;
+  title: string;
+  tag: string;
+  desc: string;
+  bullets: string[];
+  mediaUrl: string;
+  mediaType: "image" | "video";
+  mediaItems?: MediaItem[];
+  order: number;
+}
+
+function resolveMediaItems(svc: Service): MediaItem[] {
+  if (svc.mediaItems && svc.mediaItems.length > 0) return svc.mediaItems;
+  return [{ url: svc.mediaUrl, type: svc.mediaType }];
+}
 
 
 const WHY = [
@@ -20,9 +35,9 @@ const WHY = [
 ];
 
 const TRUST_BADGES = [
-  { symbol: "✓", label: "Fully Licensed" },
-  { symbol: "🛡", label: "Insured" },
-  { symbol: "⭐", label: "Trusted Local" },
+  { icon: Shield, label: "Licensed & Insured", sub: "Full coverage on every project" },
+  { icon: Award, label: "Certified Craftsmen", sub: "Industry-certified professionals" },
+  { icon: CheckCircle, label: "Satisfaction Guaranteed", sub: "We don't stop until you're happy" },
 ];
 
 const fadeUp = {
@@ -35,7 +50,77 @@ const stagger = {
   show: { transition: { staggerChildren: 0.1 } },
 };
 
+// ─── MediaSlideshow ────────────────────────────────────────────────────────────
+
+function MediaSlideshow({ items, title }: { items: MediaItem[]; title: string }) {
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    if (items.length <= 1) return;
+    const timer = setInterval(() => setIdx((i) => (i + 1) % items.length), 4500);
+    return () => clearInterval(timer);
+  }, [items.length]);
+
+  const current = items[Math.min(idx, items.length - 1)];
+
+  return (
+    <div className="relative w-full h-full overflow-hidden">
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={idx}
+          className="absolute inset-0"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          {current.type === "video" ? (
+            <video
+              src={current.url}
+              autoPlay muted loop playsInline
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <img
+              src={current.url}
+              alt={title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          )}
+        </motion.div>
+      </AnimatePresence>
+
+      {items.length > 1 && (
+        <div className="absolute bottom-2 inset-x-0 flex justify-center gap-1.5 z-10">
+          {items.map((_, i) => (
+            <button
+              key={i}
+              onClick={(e) => { e.preventDefault(); setIdx(i); }}
+              className={`w-1.5 h-1.5 rounded-full transition-all ${
+                i === idx ? "bg-white scale-110" : "bg-white/40 hover:bg-white/70"
+              }`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function HomePage() {
+  const { data: fetchedServices, isLoading: servicesLoading } = useQuery<Service[]>({
+    queryKey: ["/api/services"],
+    queryFn: async () => {
+      const apiBase = import.meta.env.VITE_API_URL || "";
+      const res = await fetch(`${apiBase}/api/services`);
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const services = (fetchedServices ?? []).slice(0, 6);
+
   return (
     <div className="flex flex-col">
       {/* Hero */}
@@ -79,14 +164,19 @@ export default function HomePage() {
             </motion.div>
 
             {/* Trust Badges */}
-            <motion.div variants={fadeUp} className="flex flex-wrap gap-4">
-              {TRUST_BADGES.map(({ symbol, label }) => (
+            <motion.div variants={fadeUp} className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+              {TRUST_BADGES.map(({ icon: Icon, label, sub }) => (
                 <div
                   key={label}
-                  className="inline-flex items-center gap-2.5 rounded-sm bg-accent px-5 py-3 shadow-lg"
+                  className="flex items-center gap-3 rounded-sm border border-white/15 bg-white/8 px-4 py-3.5 backdrop-blur-sm"
                 >
-                  <span className="text-xl leading-none">{symbol}</span>
-                  <span className="text-sm font-bold text-white uppercase tracking-wide">{label}</span>
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-sm bg-accent shadow-md">
+                    <Icon className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white leading-tight">{label}</p>
+                    <p className="text-xs text-white/55 mt-0.5">{sub}</p>
+                  </div>
                 </div>
               ))}
             </motion.div>
@@ -108,33 +198,49 @@ export default function HomePage() {
             <h2 className="font-display text-4xl md:text-5xl font-bold text-foreground">Expert Services for Every Project</h2>
           </motion.div>
 
-          <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-            variants={stagger}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true }}
-          >
-            {SERVICES.map((svc) => (
-              <motion.div
-                key={svc.title}
-                variants={fadeUp}
-                className="group relative overflow-hidden rounded-sm bg-card border border-border hover:shadow-xl transition-shadow duration-300"
-              >
-                <div className="aspect-[16/10] overflow-hidden">
-                  <img
-                    src={svc.img}
-                    alt={svc.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
+          {servicesLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="rounded-sm border border-border overflow-hidden animate-pulse">
+                  <div className="aspect-[16/10] bg-muted" />
+                  <div className="p-6 space-y-3">
+                    <div className="h-3 w-24 bg-muted rounded" />
+                    <div className="h-5 w-40 bg-muted rounded" />
+                    <div className="space-y-2">
+                      <div className="h-3 w-full bg-muted rounded" />
+                      <div className="h-3 w-5/6 bg-muted rounded" />
+                      <div className="h-3 w-4/6 bg-muted rounded" />
+                    </div>
+                  </div>
                 </div>
-                <div className="p-6">
-                  <h3 className="font-display text-xl font-bold text-foreground mb-2">{svc.title}</h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">{svc.desc}</p>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
+              ))}
+            </div>
+          ) : (
+            <motion.div
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+              variants={stagger}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true }}
+            >
+              {services.map((svc) => (
+                <motion.div
+                  key={svc.id}
+                  variants={fadeUp}
+                  className="group relative overflow-hidden rounded-sm bg-card border border-border hover:shadow-xl transition-shadow duration-300"
+                >
+                  <div className="aspect-[16/10] overflow-hidden relative">
+                    <MediaSlideshow items={resolveMediaItems(svc)} title={svc.title} />
+                  </div>
+                  <div className="p-6">
+                    <p className="text-accent text-[11px] font-semibold uppercase tracking-wider mb-1">{svc.tag}</p>
+                    <h3 className="font-display text-xl font-bold text-foreground mb-2">{svc.title}</h3>
+                    <p className="text-muted-foreground text-sm leading-relaxed line-clamp-3">{svc.desc}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
 
           <div className="mt-12 text-center">
             <Link

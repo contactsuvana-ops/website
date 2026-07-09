@@ -36,7 +36,6 @@ import {
   Database,
   Image,
   Video,
-  Globe,
   CreditCard,
 } from "lucide-react";
 
