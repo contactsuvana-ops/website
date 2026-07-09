@@ -47,6 +47,6 @@ env:
     availability:
       - RUNTIME
   - variable: SITE_URL
-    value: https://suvana-97279.web.app
+    value: https://suvanaconstruction.com
     availability:
       - RUNTIME

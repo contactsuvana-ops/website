@@ -48,6 +48,7 @@ interface SnapshotData {
     depositAmount?: number;
   };
 }
+  note?: string | null;
 
 interface SnapshotSection {
   id: string;
@@ -251,7 +252,7 @@ export default function CustomerPortalPage() {
 
   // Already accepted in a previous session — show read-only confirmation
   if (data.estimateStatus === "accepted" && portalState !== "accepted") {
-    const siteUrl = import.meta.env.VITE_SITE_URL || "https://suvana-97279.web.app";
+    const siteUrl = import.meta.env.VITE_SITE_URL || "https://suvanaconstruction.com";
     return (
       <div className="min-h-screen bg-muted/30 flex items-center justify-center p-6">
         <motion.div
@@ -396,6 +397,13 @@ export default function CustomerPortalPage() {
         {est.description && (
           <div className="bg-background rounded-sm border border-border p-5 mb-6">
             <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{est.description}</p>
+          </div>
+        )}
+
+        {snap.note && (
+          <div className="bg-amber-50 border border-amber-200 rounded-sm p-5 mb-6">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-700 mb-2">Note</p>
+            <p className="text-sm text-amber-950 whitespace-pre-wrap leading-relaxed">{snap.note}</p>
           </div>
         )}
 

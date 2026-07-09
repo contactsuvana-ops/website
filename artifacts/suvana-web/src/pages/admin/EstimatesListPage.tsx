@@ -28,7 +28,7 @@ interface EstimateListItem {
   id: string;
   title: string;
   customerName: string;
-  customerEmail: string;
+  customerEmail?: string | null;
   status: string;
   createdAt: string;
   updatedAt: string;
@@ -310,7 +310,7 @@ export default function EstimatesListPage() {
                     </td>
                     <td className="px-5 py-4">
                       <p className="text-foreground">{e.customerName}</p>
-                      <p className="text-xs text-muted-foreground">{e.customerEmail}</p>
+                      <p className="text-xs text-muted-foreground">{e.customerEmail || "No email provided"}</p>
                     </td>
                     <td className="px-5 py-4">
                       <span className={`inline-flex rounded-sm px-2.5 py-1 text-xs font-semibold ${STATUS_COLORS[e.status] ?? "bg-muted text-muted-foreground"}`}>

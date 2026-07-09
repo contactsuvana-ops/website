@@ -63,7 +63,7 @@ interface EstimateDoc {
   id: string;
   title: string;
   customerName: string;
-  customerEmail: string;
+  customerEmail?: string | null;
   customerPhone?: string | null;
   projectAddress?: string | null;
   description?: string | null;
@@ -1019,7 +1019,7 @@ function SendModal({
       const res = await adminFetch(`/admin/estimates/${estimate.id}/send`, {
         method: "POST",
         body: JSON.stringify({
-          customerEmail: email.trim(),
+          customerEmail: email.trim() || undefined,
           message: message.trim() || undefined,
           validUntil: validUntil || undefined,
         }),
@@ -1433,11 +1433,55 @@ export default function EstimateBuilderPage() {
                 }}
                 className="w-full text-xl font-bold text-foreground bg-transparent border-0 border-b-2 border-transparent focus:border-accent focus:outline-none pb-1 mb-2"
               />
-              <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
-                <span>{estimate.customerName}</span>
-                {estimate.customerEmail && <span>{estimate.customerEmail}</span>}
-                {estimate.customerPhone && <span>{estimate.customerPhone}</span>}
-                {estimate.projectAddress && <span>{estimate.projectAddress}</span>}
+              <div className="grid gap-3 rounded-sm border border-border bg-background/80 p-4 text-sm">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1">Customer Name</label>
+                    <input
+                      type="text"
+                      defaultValue={estimate.customerName}
+                      onBlur={(e) => {
+                        const value = e.target.value.trim();
+                        if (value && value !== estimate.customerName) {
+                          debouncedUpdateEstimate({ customerName: value });
+                        }
+                      }}
+                      className="w-full rounded-sm border border-border bg-background px-2.5 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1">Customer Email</label>
+                    <input
+                      type="email"
+                      defaultValue={estimate.customerEmail ?? ""}
+                      onBlur={(e) => debouncedUpdateEstimate({ customerEmail: e.target.value.trim() })}
+                      placeholder="Optional"
+                      className="w-full rounded-sm border border-border bg-background px-2.5 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1">Customer Phone</label>
+                    <input
+                      type="tel"
+                      defaultValue={estimate.customerPhone ?? ""}
+                      onBlur={(e) => debouncedUpdateEstimate({ customerPhone: e.target.value.trim() })}
+                      placeholder="Optional"
+                      className="w-full rounded-sm border border-border bg-background px-2.5 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1">Project Address</label>
+                    <input
+                      type="text"
+                      defaultValue={estimate.projectAddress ?? ""}
+                      onBlur={(e) => debouncedUpdateEstimate({ projectAddress: e.target.value.trim() })}
+                      placeholder="Optional"
+                      className="w-full rounded-sm border border-border bg-background px-2.5 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 

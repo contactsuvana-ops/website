@@ -869,7 +869,7 @@ export interface EstimateDoc {
   opportunityId?: string;
   title: string;
   customerName: string;
-  customerEmail: string;
+  customerEmail?: string;
   customerPhone?: string;
   projectAddress?: string;
   description?: string;

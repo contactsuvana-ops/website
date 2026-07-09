@@ -245,7 +245,7 @@ export type GetOpportunitiesQuery = z.infer<typeof GetOpportunitiesQuery>;
 export const CreateEstimateBody = z.object({
   title: z.string().min(1, "Title is required"),
   customerName: z.string().min(1, "Customer name is required"),
-  customerEmail: z.string().email("Valid customer email is required"),
+  customerEmail: z.string().email("Valid customer email is required").optional().or(z.literal("")),
   customerPhone: z.string().optional(),
   projectAddress: z.string().optional(),
   description: z.string().optional(),
@@ -259,7 +259,7 @@ export type CreateEstimateBody = z.infer<typeof CreateEstimateBody>;
 export const UpdateEstimateBody = z.object({
   title: z.string().min(1).optional(),
   customerName: z.string().min(1).optional(),
-  customerEmail: z.string().email().optional(),
+  customerEmail: z.string().email().optional().or(z.literal("")),
   customerPhone: z.string().optional(),
   projectAddress: z.string().optional(),
   description: z.string().optional(),
@@ -358,6 +358,7 @@ export type ReorderLineItemsBody = z.infer<typeof ReorderLineItemsBody>;
 
 export const SendEstimateBody = z.object({
   message: z.string().optional(),
+  customerEmail: z.string().email().optional().or(z.literal("")),
   validDays: z.number().int().min(1).max(365).default(30),
   changeSummary: z.string().optional(),
 });

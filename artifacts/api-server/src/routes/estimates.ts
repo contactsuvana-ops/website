@@ -33,6 +33,7 @@ import { logger } from "../lib/logger";
 import { convertEstimateToProject } from "../lib/conversion";
 
 export const estimatesRouter: IRouter = Router();
+const SITE_URL = (process.env.SITE_URL?.trim() || "https://suvanaconstruction.com").replace(/\/$/, "");
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -433,6 +434,11 @@ estimatesRouter.post("/:id/send", async (req, res): Promise<void> => {
       depositPct: estimate.depositPct,
       discountAmount: estimate.discountAmount,
     });
+    const recipientEmail = parsed.data.customerEmail?.trim() || estimate.customerEmail?.trim();
+    if (!recipientEmail) {
+      res.status(400).json({ error: "Customer email is required to send a quote." });
+      return;
+    }
 
     // Create immutable snapshot
     const newVersionNumber = (estimate.currentVersionNumber ?? 0) + 1;
@@ -441,6 +447,7 @@ estimatesRouter.post("/:id/send", async (req, res): Promise<void> => {
       sections: sections.map(serializeSection),
       items: items.map(serializeLineItem),
       totals,
+      note: parsed.data.message?.trim() || undefined,
     };
 
     const versionsRepo = getEstimateVersionsRepository();
@@ -473,15 +480,15 @@ estimatesRouter.post("/:id/send", async (req, res): Promise<void> => {
       status: "sent",
       currentVersionNumber: newVersionNumber,
       validUntil: expiresAt,
+      customerEmail: recipientEmail,
     });
 
     await versionsRepo.markSent(version.id);
 
     // Send email (fire and forget)
-    const apiBase = process.env.SITE_URL ?? "";
-    const portalUrl = `${apiBase}/quote/${token}`;
+    const portalUrl = `${SITE_URL}/quote/${token}`;
     sendQuoteToCustomer({
-      to: estimate.customerEmail,
+      to: recipientEmail,
       customerName: estimate.customerName,
       estimateTitle: estimate.title,
       versionNumber: newVersionNumber,
