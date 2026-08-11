@@ -37,6 +37,13 @@ interface SnapshotData {
     discountAmount?: number | null;
     validUntil?: string | null;
     description?: string | null;
+    proposalNotes?: string[];
+    included?: string[];
+    exclusions?: string[];
+    warranty?: string | null;
+    timelineStart?: string | null;
+    timelineEnd?: string | null;
+    paymentSchedule?: string[];
   };
   sections?: SnapshotSection[];
   items?: SnapshotItem[];
@@ -47,13 +54,14 @@ interface SnapshotData {
     grandTotal?: number;
     depositAmount?: number;
   };
-}
   note?: string | null;
+}
 
 interface SnapshotSection {
   id: string;
   title: string;
   position: number;
+  notes?: string | null;
 }
 
 interface SnapshotItem {
@@ -74,6 +82,10 @@ function fmt(n: number) {
   return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function round2(n: number) {
+  return Math.round(n * 100) / 100;
+}
+
 // ─── Section block ─────────────────────────────────────────────────────────────
 
 function SectionBlock({
@@ -88,9 +100,11 @@ function SectionBlock({
   onToggleOptional: (id: string) => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
-  const visible = items.filter((i) => i.isVisibleToCustomer);
+  const includedItems = items.filter((i) => !i.isOptional || optionalSelected.has(i.id));
+  const visible = includedItems.filter((i) => i.isVisibleToCustomer);
+  const totalAmount = round2(includedItems.reduce((sum, item) => sum + (item.lineTotal ?? 0), 0));
 
-  if (visible.length === 0) return null;
+  if (items.length === 0) return null;
 
   return (
     <div className="border border-border rounded-sm overflow-hidden mb-3">
@@ -100,6 +114,9 @@ function SectionBlock({
       >
         {collapsed ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronUp className="h-4 w-4 text-muted-foreground" />}
         <span className="text-sm font-semibold text-foreground flex-1">{section.title}</span>
+        <span className="text-right">
+          <span className="block text-sm font-semibold text-foreground">${fmt(totalAmount)}</span>
+        </span>
       </button>
 
       <AnimatePresence initial={false}>
@@ -112,33 +129,41 @@ function SectionBlock({
             className="overflow-hidden"
           >
             <div className="divide-y divide-border">
-              {visible.map((item) => (
-                <div
-                  key={item.id}
-                  className={`flex items-center gap-4 px-5 py-3 ${item.isOptional ? "bg-blue-50/30" : ""}`}
-                >
-                  {item.isOptional && (
-                    <input
-                      type="checkbox"
-                      checked={optionalSelected.has(item.id)}
-                      onChange={() => onToggleOptional(item.id)}
-                      className="rounded"
-                    />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-foreground">{item.description}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {item.qty} {item.unit}
-                      {item.isOptional && <span className="ml-2 text-blue-600 font-medium">Optional add-on</span>}
-                    </p>
+              {visible.length > 0 ? (
+                visible.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`flex items-center gap-4 px-5 py-3 ${item.isOptional ? "bg-blue-50/30" : ""}`}
+                  >
+                    {item.isOptional && (
+                      <input
+                        type="checkbox"
+                        checked={optionalSelected.has(item.id)}
+                        onChange={() => onToggleOptional(item.id)}
+                        className="rounded"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-foreground">{item.description}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.qty} {item.unit}
+                        {item.isOptional && <span className="ml-2 text-blue-600 font-medium">Optional add-on</span>}
+                      </p>
+                    </div>
+                    {item.lineTotal !== undefined && (
+                      <p className="text-sm font-semibold text-foreground flex-shrink-0">
+                        ${fmt(item.lineTotal)}
+                      </p>
+                    )}
                   </div>
-                  {item.lineTotal !== undefined && (
-                    <p className="text-sm font-semibold text-foreground flex-shrink-0">
-                      ${fmt(item.lineTotal)}
-                    </p>
-                  )}
+                ))
+              ) : null}
+              {section.notes && (
+                <div className="px-5 py-3 bg-amber-50 border-t border-amber-100 text-sm text-amber-950">
+                  <p className="font-semibold text-[11px] uppercase tracking-wider text-amber-700 mb-1">Note</p>
+                  <p className="whitespace-pre-wrap leading-relaxed">{section.notes}</p>
                 </div>
-              ))}
+              )}
             </div>
           </motion.div>
         )}
@@ -289,15 +314,17 @@ export default function CustomerPortalPage() {
   const items = snap.items ?? [];
 
   // Recompute totals live so toggling optional items updates the summary
-  const activeItems = items.filter(
-    (i) => i.isVisibleToCustomer && (!i.isOptional || optionalSelected.has(i.id))
-  );
-  const dynamicSubtotal = activeItems.reduce((sum, i) => sum + (i.lineTotal ?? 0), 0);
-  const discountAmt = snap.totals?.discountAmount ?? 0;
-  const afterDiscount = Math.max(0, dynamicSubtotal - discountAmt);
-  const taxAmt = afterDiscount * ((est.taxRate ?? 0) / 100);
-  const grandTotalAmt = afterDiscount + taxAmt;
-  const depositAmt = grandTotalAmt * ((est.depositPct ?? 0) / 100);
+  // Include all non-optional items (even if internal/hidden) in totals, per requirement
+  const baseItems = items.filter((i) => !i.isOptional);
+  const optionalItemsAll = items.filter((i) => i.isOptional);
+  const selectedOptionalItems = items.filter((i) => i.isOptional && optionalSelected.has(i.id));
+  const activeItems = [...baseItems, ...selectedOptionalItems];
+  const dynamicSubtotal = round2(activeItems.reduce((sum, i) => sum + (i.lineTotal ?? 0), 0));
+  const discountAmt = round2(snap.totals?.discountAmount ?? 0);
+  const afterDiscount = round2(Math.max(0, dynamicSubtotal - discountAmt));
+  const taxAmt = round2(afterDiscount * ((est.taxRate ?? 0) / 100));
+  const grandTotalAmt = round2(afterDiscount + taxAmt);
+  const depositAmt = round2(grandTotalAmt * ((est.depositPct ?? 0) / 100));
   const totals = {
     subtotal: dynamicSubtotal,
     discountAmount: discountAmt,
@@ -407,7 +434,72 @@ export default function CustomerPortalPage() {
           </div>
         )}
 
-        {/* Sections */}
+        {/* Project Summary */}
+        {est.description && (
+          <div className="bg-background rounded-sm border border-border p-5 mb-6">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Project Summary</h3>
+            <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{est.description}</p>
+          </div>
+        )}
+
+        {/* Project Notes */}
+        {(est.proposalNotes ?? []).length > 0 && (
+          <div className="bg-background rounded-sm border border-border p-5 mb-6">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Project Notes</h3>
+            <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+              {(est.proposalNotes ?? []).map((n, idx) => (
+                <li key={idx} className="whitespace-pre-wrap">{n}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Included / Exclusions / Warranty / Timeline / Payment Schedule */}
+        {((est.included ?? []).length > 0 || (est.exclusions ?? []).length > 0 || est.warranty || est.timelineStart || est.timelineEnd || (est.paymentSchedule ?? []).length > 0) && (
+          <div className="grid md:grid-cols-3 gap-4 mb-6">
+            {(est.included ?? []).length > 0 && (
+              <div className="bg-background rounded-sm border border-border p-5">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Included</h4>
+                <ul className="list-disc list-inside text-sm text-foreground space-y-1">{(est.included ?? []).map((it, i) => <li key={i}>{it}</li>)}</ul>
+              </div>
+            )}
+
+            {(est.exclusions ?? []).length > 0 && (
+              <div className="bg-background rounded-sm border border-border p-5">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Exclusions</h4>
+                <ul className="list-disc list-inside text-sm text-foreground space-y-1">{(est.exclusions ?? []).map((it, i) => <li key={i}>{it}</li>)}</ul>
+              </div>
+            )}
+
+            {(est.warranty || est.timelineStart || est.timelineEnd || (est.paymentSchedule ?? []).length > 0) && (
+              <div className="bg-background rounded-sm border border-border p-5">
+                {est.warranty && (
+                  <>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Warranty</h4>
+                    <p className="text-sm text-foreground mb-3">{est.warranty}</p>
+                  </>
+                )}
+                {(est.timelineStart || est.timelineEnd) && (
+                  <>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Timeline</h4>
+                    <p className="text-sm text-foreground mb-3">
+                      {est.timelineStart && <>Start: {new Date(est.timelineStart).toLocaleDateString()}</>}<br />
+                      {est.timelineEnd && <>Finish: {new Date(est.timelineEnd).toLocaleDateString()}</>}
+                    </p>
+                  </>
+                )}
+                {(est.paymentSchedule ?? []).length > 0 && (
+                  <>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Payment Schedule</h4>
+                    <ul className="list-disc list-inside text-sm text-foreground space-y-1">{(est.paymentSchedule ?? []).map((p, i) => <li key={i}>{p}</li>)}</ul>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Sections (required work only) */}
         {sections.map((section) => (
           <SectionBlock
             key={section.id}
@@ -417,6 +509,41 @@ export default function CustomerPortalPage() {
             onToggleOptional={toggleOptional}
           />
         ))}
+
+        {/* Optional Upgrades */}
+        {optionalItemsAll.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Optional Upgrades</h3>
+            <div className="space-y-3">
+              {sections.map((section) => {
+                const sectionOptionals = optionalItemsAll.filter(
+                  (i) => i.sectionId === section.id && !optionalSelected.has(i.id)
+                );
+                if (sectionOptionals.length === 0) return null;
+                return (
+                  <div key={section.id} className="border border-border rounded-sm overflow-hidden">
+                    <div className="px-5 py-3 bg-muted/20 flex items-center justify-between">
+                      <span className="text-sm font-semibold text-foreground">{section.title}</span>
+                      <span className="text-sm font-semibold text-foreground">${fmt(round2(sectionOptionals.reduce((s, it) => s + (it.lineTotal ?? 0), 0)))}</span>
+                    </div>
+                    <div className="divide-y divide-border">
+                      {sectionOptionals.map((item) => (
+                        <div key={item.id} className="flex items-center gap-4 px-5 py-3">
+                          <input type="checkbox" checked={optionalSelected.has(item.id)} onChange={() => toggleOptional(item.id)} className="rounded" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-foreground">{item.description}</p>
+                            <p className="text-xs text-muted-foreground">{item.qty} {item.unit}</p>
+                          </div>
+                          <p className="text-sm font-semibold text-foreground">${fmt(item.lineTotal ?? 0)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Totals */}
         <div className="bg-background rounded-sm border border-border p-5 mb-8">

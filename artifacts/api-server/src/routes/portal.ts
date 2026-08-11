@@ -110,8 +110,9 @@ portalRouter.post("/:token/accept", async (req, res): Promise<void> => {
       };
 
       const allItems = snap.items ?? [];
+      // Include internal/hidden items in totals (they are part of the sold scope)
       const acceptedItems = allItems.filter(
-        (i) => i.isVisibleToCustomer && (!i.isOptional || selectedOptionalIds.has(i.id))
+        (i) => (!i.isOptional || selectedOptionalIds.has(i.id))
       );
       const subtotal = acceptedItems.reduce((sum, i) => sum + (i.lineTotal ?? 0), 0);
       const discountAmt = snap.totals?.discountAmount ?? 0;

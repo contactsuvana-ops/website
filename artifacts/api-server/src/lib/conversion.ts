@@ -99,7 +99,7 @@ export async function convertEstimateToProject(
     description: estimate.description ?? "",
     status: "planning",
     clientName: estimate.customerName,
-    clientEmail: estimate.customerEmail,
+    clientEmail: estimate.customerEmail ?? customer.billingEmail ?? "",
     customerId: customer.id,
     projectNumber,
     sourceEstimateId: estimateId,

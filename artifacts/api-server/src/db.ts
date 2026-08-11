@@ -1,3 +1,5 @@
+const DEFAULT_WORKMANSHIP_WARRANTY =
+  "Workmanship Warranty\nSuvana Construction provides a one-year workmanship warranty covering defects resulting from our installation. This warranty does not cover normal wear and tear, water damage, abuse, misuse, structural movement, or manufacturer defects in supplied materials.";
 import admin from "firebase-admin";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -788,6 +790,14 @@ export interface OpportunityDoc {
   budget?: string;
   timeline?: string;
   description?: string;
+  // Proposal / customer-facing fields
+  proposalNotes?: string[];
+  included?: string[];
+  exclusions?: string[];
+  warranty?: string | null;
+  timelineStart?: admin.firestore.Timestamp | null;
+  timelineEnd?: admin.firestore.Timestamp | null;
+  paymentSchedule?: string[];
   status: OpportunityStatus;
   assignedTo?: string;
   submissionId?: string;
@@ -873,6 +883,7 @@ export interface EstimateDoc {
   customerPhone?: string;
   projectAddress?: string;
   description?: string;
+  warranty?: string | null;
   status: EstimateStatus;
   taxRate: number;
   markupPct: number;
@@ -963,6 +974,7 @@ export function getEstimatesRepository() {
       const now = admin.firestore.FieldValue.serverTimestamp();
       const ref = await col.add(stripUndefined({
         ...data,
+        warranty: data.warranty?.trim() || DEFAULT_WORKMANSHIP_WARRANTY,
         createdAt: now,
         updatedAt: now,
       }) as admin.firestore.DocumentData);

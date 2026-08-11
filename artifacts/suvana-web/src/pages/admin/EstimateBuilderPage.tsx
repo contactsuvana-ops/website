@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -42,6 +42,7 @@ import {
   ArrowRight,
   FolderOpen,
 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const apiBase = import.meta.env.VITE_API_URL || "";
 
@@ -74,6 +75,14 @@ interface EstimateDoc {
   discountAmount?: number | null;
   validUntil?: string | null;
   internalNotes?: string | null;
+  // Proposal / customer-facing fields
+  proposalNotes?: string[] | null;
+  included?: string[] | null;
+  exclusions?: string[] | null;
+  warranty?: string | null;
+  timelineStart?: string | null;
+  timelineEnd?: string | null;
+  paymentSchedule?: string[] | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -388,6 +397,12 @@ function SectionCard({
   const [collapsed, setCollapsed] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [localTitle, setLocalTitle] = useState(section.title);
+  const [localNotes, setLocalNotes] = useState(section.notes ?? "");
+  // keep localNotes in sync when section prop updates
+  useEffect(() => {
+    setLocalNotes(section.notes ?? "");
+  }, [section.notes]);
+  const debouncedUpdateNotes = useDebounce((v: string) => onUpdateSection(section.id, { notes: v || undefined }), 600);
   const sectionTotal = items.reduce((sum, i) => sum + (i.lineTotal ?? 0), 0);
   const { setNodeRef: setDropRef, isOver: isDropOver } = useDroppable({
     id: section.id,
@@ -495,6 +510,18 @@ function SectionCard({
               >
                 <Plus className="h-3.5 w-3.5" /> Add item manually
               </button>
+
+              <div className="mt-3 border-t border-border pt-3">
+                <label className="block text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-2">Customer Comment (optional)</label>
+                <textarea
+                  value={localNotes}
+                  onChange={(e) => { setLocalNotes(e.target.value); debouncedUpdateNotes(e.target.value); }}
+                  onBlur={() => { if ((localNotes ?? "").trim() !== (section.notes ?? "")) onUpdateSection(section.id, { notes: localNotes.trim() || undefined }); }}
+                  rows={3}
+                  placeholder="Add a note for the customer (shown on the quote)…"
+                  className="w-full rounded-sm border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent resize-none"
+                />
+              </div>
             </div>
           </motion.div>
         )}
@@ -1121,6 +1148,7 @@ export default function EstimateBuilderPage() {
   const [, navigate] = useLocation();
   const qc = useQueryClient();
   const [showSendModal, setShowSendModal] = useState(false);
+  const [proposalOpen, setProposalOpen] = useState(false);
   const [saveIndicator, setSaveIndicator] = useState<"idle" | "saving" | "saved">("idle");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
@@ -1481,6 +1509,95 @@ export default function EstimateBuilderPage() {
                       className="w-full rounded-sm border border-border bg-background px-2.5 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent"
                     />
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Proposal content */}
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-foreground mb-2">Proposal</h3>
+              <div className="grid gap-3 rounded-sm border border-border bg-background p-4 text-sm">
+                <div>
+                  <label className="block text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-1">Project Summary</label>
+                  <textarea
+                    defaultValue={estimate.description ?? ""}
+                    onBlur={(e) => { if (e.target.value !== (estimate.description ?? "")) debouncedUpdateEstimate({ description: e.target.value.trim() }); }}
+                    rows={3}
+                    className="w-full rounded-sm border border-border bg-background px-2.5 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent resize-none"
+                  />
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-1">Project Notes (one per line)</label>
+                    <textarea
+                      defaultValue={(estimate.proposalNotes ?? []).join("\n")}
+                      onBlur={(e) => debouncedUpdateEstimate({ proposalNotes: e.target.value.split(/\r?\n/).map(s => s.trim()).filter(Boolean) })}
+                      rows={4}
+                      className="w-full rounded-sm border border-border bg-background px-2.5 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent resize-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-1">Included (one per line)</label>
+                    <textarea
+                      defaultValue={(estimate.included ?? []).join("\n")}
+                      onBlur={(e) => debouncedUpdateEstimate({ included: e.target.value.split(/\r?\n/).map(s => s.trim()).filter(Boolean) })}
+                      rows={4}
+                      className="w-full rounded-sm border border-border bg-background px-2.5 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-1">Exclusions (one per line)</label>
+                    <textarea
+                      defaultValue={(estimate.exclusions ?? []).join("\n")}
+                      onBlur={(e) => debouncedUpdateEstimate({ exclusions: e.target.value.split(/\r?\n/).map(s => s.trim()).filter(Boolean) })}
+                      rows={4}
+                      className="w-full rounded-sm border border-border bg-background px-2.5 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent resize-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-1">Warranty</label>
+                    <input
+                      type="text"
+                      defaultValue={estimate.warranty ?? ""}
+                      onBlur={(e) => debouncedUpdateEstimate({ warranty: e.target.value.trim() || undefined })}
+                      className="w-full rounded-sm border border-border bg-background px-2.5 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-1">Estimated Start</label>
+                    <input
+                      type="date"
+                      defaultValue={estimate.timelineStart ? new Date(estimate.timelineStart).toISOString().substring(0,10) : ""}
+                      onBlur={(e) => debouncedUpdateEstimate({ timelineStart: e.target.value ? e.target.value : undefined })}
+                      className="w-full rounded-sm border border-border bg-background px-2.5 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-1">Estimated Completion</label>
+                    <input
+                      type="date"
+                      defaultValue={estimate.timelineEnd ? new Date(estimate.timelineEnd).toISOString().substring(0,10) : ""}
+                      onBlur={(e) => debouncedUpdateEstimate({ timelineEnd: e.target.value ? e.target.value : undefined })}
+                      className="w-full rounded-sm border border-border bg-background px-2.5 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-1">Payment Schedule (one milestone per line)</label>
+                  <textarea
+                    defaultValue={(estimate.paymentSchedule ?? []).join("\n")}
+                    onBlur={(e) => debouncedUpdateEstimate({ paymentSchedule: e.target.value.split(/\r?\n/).map(s => s.trim()).filter(Boolean) })}
+                    rows={3}
+                    className="w-full rounded-sm border border-border bg-background px-2.5 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent resize-none"
+                  />
                 </div>
               </div>
             </div>

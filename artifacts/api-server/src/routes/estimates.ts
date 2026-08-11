@@ -468,7 +468,7 @@ estimatesRouter.post("/:id/send", async (req, res): Promise<void> => {
     const portalToken = await getPortalRepository().createToken({
       estimateId: req.params.id,
       versionId: version.id,
-      customerEmail: estimate.customerEmail,
+      customerEmail: recipientEmail,
       token,
       expiresAt,
       isRevoked: false,

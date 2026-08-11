@@ -159,18 +159,17 @@ export async function sendQuoteToCustomer(data: {
       </div>
       <div style="padding:32px;background:#fff;">
         <h2 style="margin-top:0;">Hi ${escHtml(data.customerName)},</h2>
-        <p>Your quote for <strong>${escHtml(data.estimateTitle)}</strong> (v${data.versionNumber}) is ready to review.</p>
-        ${data.message ? `<p style="background:#f9f9f9;padding:16px;border-left:3px solid #e5e5e5;">${escHtml(data.message)}</p>` : ""}
-        <div style="background:#f5f5f5;padding:20px;border-radius:4px;margin:24px 0;">
-          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-            <span>Total</span>
-            <strong>$${data.totals.grandTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}</strong>
-          </div>
-          <div style="display:flex;justify-content:space-between;">
-            <span>Deposit</span>
-            <strong>$${data.totals.depositAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</strong>
-          </div>
-        </div>
+        <p>Your quote for <strong>${escHtml(data.estimateTitle)}</strong> is ready.</p>
+        <table style="background:#f5f5f5;border-collapse:collapse;width:100%;margin:28px 0 24px;border-radius:4px;overflow:hidden;">
+          <tr>
+            <td style="padding:12px 20px 10px;color:#333;font-size:14px;line-height:1.5;">Total</td>
+            <td style="padding:12px 20px 10px;color:#111;font-size:14px;line-height:1.5;text-align:right;font-weight:700;white-space:nowrap;">$${data.totals.grandTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 20px 14px;color:#333;font-size:14px;line-height:1.5;">Deposit</td>
+            <td style="padding:10px 20px 14px;color:#111;font-size:14px;line-height:1.5;text-align:right;font-weight:700;white-space:nowrap;">$${data.totals.depositAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+          </tr>
+        </table>
         <p style="color:#666;font-size:14px;">This quote is valid until <strong>${validDate}</strong>.</p>
         <div style="text-align:center;margin:32px 0;">
           <a href="${data.portalUrl}" style="background:#1a1a1a;color:#fff;padding:14px 32px;text-decoration:none;border-radius:4px;font-weight:bold;display:inline-block;">

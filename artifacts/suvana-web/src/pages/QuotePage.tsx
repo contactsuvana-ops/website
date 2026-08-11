@@ -27,6 +27,8 @@ type FormData = z.infer<typeof schema>;
 const PROJECT_TYPES = [
   { value: "kitchen-remodeling", label: "Kitchen Remodeling" },
   { value: "drywall", label: "Drywall" },
+  { value: "deck", label: "Deck" },
+  { value: "patio", label: "Patio" },
   { value: "plumbing", label: "Plumbing" },
   { value: "electrical", label: "Electrical" },
   { value: "flooring", label: "Flooring" },
@@ -35,6 +37,7 @@ const PROJECT_TYPES = [
   { value: "painting", label: "Painting" },
   { value: "remodeling", label: "Remodeling" },
   { value: "handyman", label: "Handyman" },
+  { value: "other", label: "Other" },
 ];
 
 const BUDGETS = [

@@ -249,6 +249,13 @@ export const CreateEstimateBody = z.object({
   customerPhone: z.string().optional(),
   projectAddress: z.string().optional(),
   description: z.string().optional(),
+  proposalNotes: z.array(z.string()).optional(),
+  included: z.array(z.string()).optional(),
+  exclusions: z.array(z.string()).optional(),
+  warranty: z.string().optional(),
+  timelineStart: z.string().optional(),
+  timelineEnd: z.string().optional(),
+  paymentSchedule: z.array(z.string()).optional(),
   opportunityId: z.string().optional(),
   taxRate: z.number().min(0).max(30).default(0),
   markupPct: z.number().min(0).max(200).default(20),
@@ -269,6 +276,13 @@ export const UpdateEstimateBody = z.object({
   discountAmount: z.number().min(0).optional(),
   validUntil: z.string().datetime({ offset: true }).optional(),
   internalNotes: z.string().optional(),
+  proposalNotes: z.array(z.string()).optional(),
+  included: z.array(z.string()).optional(),
+  exclusions: z.array(z.string()).optional(),
+  warranty: z.string().optional(),
+  timelineStart: z.string().optional(),
+  timelineEnd: z.string().optional(),
+  paymentSchedule: z.array(z.string()).optional(),
 });
 export type UpdateEstimateBody = z.infer<typeof UpdateEstimateBody>;
 
@@ -357,7 +371,10 @@ export const ReorderLineItemsBody = z.object({
 export type ReorderLineItemsBody = z.infer<typeof ReorderLineItemsBody>;
 
 export const SendEstimateBody = z.object({
-  message: z.string().optional(),
+  message: z.preprocess(
+    (value) => (typeof value === "string" ? value.trim() || undefined : value),
+    z.string().optional()
+  ),
   customerEmail: z.string().email().optional().or(z.literal("")),
   validDays: z.number().int().min(1).max(365).default(30),
   changeSummary: z.string().optional(),
